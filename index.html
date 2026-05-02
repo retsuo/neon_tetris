@@ -3,257 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Master Elite</title>
+    <title>Cyber Quest: Evolution</title>
     <style>
-        :root { 
-            --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; 
-            --bg: #030305; --glass: rgba(255, 255, 255, 0.03);
-        }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
-        body { 
-            background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; 
-            margin: 0; display: flex; flex-direction: column; align-items: center; 
-            height: 100vh; overflow: hidden;
-            background-image: radial-gradient(circle at 50% -20%, #1a1a3a 0%, #030305 80%);
-        }
+        :root { --neon: #00f2ff; --gold: #ffd700; --panel: rgba(20, 20, 25, 0.95); }
+        body { margin: 0; background: #050508; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        
+        /* Главный экран */
+        #app { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Верхняя панель ресурсов */
+        .top-bar { display: flex; justify-content: space-around; padding: 15px; background: var(--panel); border-bottom: 1px solid #333; }
+        .res-item { display: flex; align-items: center; gap: 5px; font-weight: bold; }
+        .res-icon { width: 20px; height: 20px; border-radius: 50%; }
 
-        /* Шапка с эффектом размытия */
-        .header { 
-            width: 100%; padding: 15px 25px; display: flex; justify-content: space-between; 
-            align-items: center; z-index: 10; backdrop-filter: blur(10px);
-        }
-        .rank-badge { 
-            background: var(--glass); border: 1px solid rgba(0, 242, 255, 0.3);
-            color: var(--neon); padding: 8px 16px; border-radius: 12px; 
-            font-size: 12px; font-weight: 800; letter-spacing: 1px;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
-        }
+        /* Игровая зона */
+        #world { flex: 1; position: relative; background: url('https://img.freepik.com/free-photo/cyberpunk-city-street-night_23-2150772224.jpg') center/cover; }
+        
+        /* Персонаж (Placeholder) */
+        .hero { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); width: 80px; height: 120px; 
+                background: url('https://cdn-icons-png.flaticon.com/512/4333/4333609.png') no-repeat center/contain;
+                filter: drop-shadow(0 0 10px var(--neon)); transition: 0.3s; }
 
-        /* Игровое поле */
-        #game-box { 
-            position: relative; width: 300px; height: 500px; 
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; 
-            background: var(--glass); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            overflow: hidden; backdrop-filter: blur(5px);
-        }
-        .grid-mesh { 
-            position: absolute; inset: 0; z-index: 1; opacity: 0.05;
-            background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
-            background-size: 30px 25px;
-        }
-        canvas { display: block; position: relative; z-index: 2; width: 100%; height: 100%; }
+        /* Нижнее меню навигации */
+        .nav-menu { display: flex; justify-content: space-between; background: var(--panel); padding: 10px 20px 30px; border-top: 1px solid #444; }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; opacity: 0.6; font-size: 10px; gap: 5px; cursor: pointer; }
+        .nav-btn.active { opacity: 1; color: var(--neon); }
+        .nav-icon { font-size: 24px; }
 
-        /* Главное меню - Прям как в крутых аппках */
-        .menu-overlay { 
-            position: absolute; inset: 0; background: rgba(3,3,5,0.95); 
-            z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .title-glow { 
-            font-size: 40px; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--neon));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5)); margin-bottom: 40px;
-        }
-        .modern-input { 
-            width: 80%; background: #0f0f13; border: 1px solid #222; border-radius: 16px; 
-            color: #fff; padding: 18px; text-align: center; font-size: 16px; margin-bottom: 25px;
-        }
-        .btn-main { 
-            background: linear-gradient(135deg, var(--neon), #00a2ff); border: none; 
-            padding: 18px 60px; border-radius: 20px; color: #000; font-weight: 800; 
-            font-size: 18px; letter-spacing: 1px; box-shadow: 0 10px 25px rgba(0, 242, 255, 0.3);
-        }
-
-        /* Кнопки управления в стиле 'Cyberpunk' */
-        .control-panel { width: 100%; padding: 20px 0 60px; margin-top: auto; display: flex; justify-content: center; }
-        .d-pad { display: grid; grid-template-columns: repeat(3, 85px); gap: 15px; }
-        .c-btn { 
-            height: 85px; background: #0f0f13; border: 1px solid #1f1f25; border-radius: 24px;
-            display: flex; align-items: center; justify-content: center; font-size: 28px;
-            box-shadow: inset 0 2px 5px rgba(255,255,255,0.05), 0 10px 20px rgba(0,0,0,0.4);
-            color: #555; transition: 0.1s;
-        }
-        .c-btn:active { transform: scale(0.92); color: var(--neon); border-color: var(--neon); box-shadow: 0 0 20px rgba(0,242,255,0.2); }
-        .c-rot { grid-column: 2; color: var(--pink); border-color: rgba(255,0,222,0.2); border-radius: 50%; }
+        /* Окно диалога (как в Catizen) */
+        .dialog-box { position: absolute; bottom: 120px; left: 10px; right: 10px; background: rgba(0,0,0,0.85); 
+                      border: 2px solid var(--neon); border-radius: 15px; padding: 15px; display: none; z-index: 50; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="rank-badge">ELITE LEAGUE</div>
-    <div style="text-align: right">
-        <div style="font-size: 10px; opacity: 0.5; letter-spacing: 2px">SCORE</div>
-        <div id="ui-score" style="font-size: 22px; font-weight: 900; color: #fff">0</div>
+<div id="app">
+    <div class="top-bar">
+        <div class="res-item"><div class="res-icon" style="background:var(--gold)"></div> <span id="gold">1000</span></div>
+        <div class="res-item"><div class="res-icon" style="background:var(--neon)"></div> <span id="gems">50</span></div>
+        <div class="res-item">LVL: <span id="lvl">1</span></div>
+    </div>
+
+    <div id="world">
+        <div class="hero" id="player"></div>
+        
+        <div class="dialog-box" id="msg-box">
+            <b style="color:var(--neon)">ИНСТРУКТОР:</b>
+            <p id="msg-text">Добро пожаловать в Нео-Бишкек! Готов к первой миссии?</p>
+            <button onclick="closeDialog()" style="background:var(--neon); border:none; padding:5px 15px; border-radius:5px;">OK</button>
+        </div>
+    </div>
+
+    <div class="nav-menu">
+        <div class="nav-btn active"><span class="nav-icon">⚔️</span>ГЕРОЙ</div>
+        <div class="nav-btn"><span class="nav-icon">🛠</span>КУЗНЯ</div>
+        <div class="nav-btn" onclick="openShop()"><span class="nav-icon">💎</span>МАГАЗИН</div>
+        <div class="nav-btn"><span class="nav-icon">🏆</span>ТОП</div>
     </div>
 </div>
-
-<div id="game-box">
-    <div class="grid-mesh"></div>
-    <div id="overlay" class="menu-overlay">
-        <div class="title-glow">NEON MASTER</div>
-        <input type="text" id="nick-input" class="modern-input" placeholder="USERNAME" maxlength="10">
-        <button class="btn-main" id="start-btn">START GAME</button>
-        <p id="best-score-text" style="margin-top: 30px; opacity: 0.4; font-size: 14px">BEST: 0</p>
-    </div>
-    <canvas id="game"></canvas>
-</div>
-
-<div class="control-panel">
-    <div class="d-pad">
-        <div class="c-btn c-rot" id="m-rot">↻</div>
-        <div class="c-btn" id="m-l" style="grid-row:2">←</div>
-        <div class="c-btn" id="m-d" style="grid-row:2">↓</div>
-        <div class="c-btn" id="m-r" style="grid-row:2">→</div>
-    </div>
-</div>
-
-<script type="module">
-    // Подключаем Firebase (конфиг как в User Summary)
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const firebaseConfig = {
-        databaseURL: "https://retsuo-default-rtdb.europe-west1.firebasedatabase.app"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    window.saveToFirebase = (name, score) => {
-        set(ref(db, 'leaderboard/' + name), { score: score });
-    };
-</script>
 
 <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    const ROWS = 20, COLS = 12;
+    function openShop() {
+        document.getElementById('msg-box').style.display = 'block';
+        document.getElementById('msg-text').textContent = "Магазин временно закрыт на тех-обслуживание. Зайдите позже!";
+    }
     
-    // Подстройка под экран
-    canvas.width = 300; canvas.height = 500;
-    const BW = canvas.width / COLS;
-    const BH = canvas.height / ROWS;
-
-    let arena = Array.from({length: ROWS}, () => Array(COLS).fill(0));
-    const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
-    let score = 0, active = false, myName = localStorage.getItem('player_name') || "";
-
-    if(myName) document.getElementById('nick-input').style.display = 'none';
-
-    document.getElementById('start-btn').onclick = () => {
-        if(!myName) {
-            const val = document.getElementById('nick-input').value.trim();
-            if(!val) return;
-            myName = val;
-            localStorage.setItem('player_name', myName);
-        }
-        document.getElementById('overlay').style.display = 'none';
-        arena.forEach(r => r.fill(0));
-        score = 0; updateScore(0);
-        active = true; resetPiece(); update();
-    };
-
-    function updateScore(v) {
-        score += v;
-        document.getElementById('ui-score').innerText = score;
+    function closeDialog() {
+        document.getElementById('msg-box').style.display = 'none';
     }
 
-    const piece = { pos: {x: 0, y: 0}, matrix: null };
-
-    function createPiece(t) {
-        if (t === 'I') return [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]];
-        if (t === 'T') return [[0,2,0],[2,2,2],[0,0,0]];
-        if (t === 'O') return [[3,3],[3,3]];
-        if (t === 'L') return [[0,4,0],[0,4,0],[0,4,4]];
-        if (t === 'J') return [[0,5,0],[0,5,0],[5,5,0]];
-        if (t === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
-        return [[7,7,0],[0,7,7],[0,0,0]];
-    }
-
-    function collide(a, p) {
-        const [m, o] = [p.matrix, p.pos];
-        for (let y = 0; y < m.length; ++y) {
-            for (let x = 0; x < m[y].length; ++x) {
-                if (m[y][x] !== 0 && (a[y + o.y] && a[y + o.y][x + o.x]) !== 0) return true;
-            }
-        }
-        return false;
-    }
-
-    function resetPiece() {
-        const p = 'ILJOTSZ';
-        piece.matrix = createPiece(p[Math.floor(Math.random() * p.length)]);
-        piece.pos = { x: Math.floor(COLS/2 - piece.matrix[0].length/2), y: 0 };
-        if (collide(arena, piece)) {
-            active = false;
-            document.getElementById('overlay').style.display = 'flex';
-            window.saveToFirebase(myName, score);
-        }
-    }
-
-    function merge(a, p) {
-        p.matrix.forEach((row, y) => {
-            row.forEach((v, x) => { if (v) a[y + p.pos.y][x + p.pos.x] = v; });
-        });
-    }
-
-    function sweep() {
-        outer: for (let y = ROWS - 1; y >= 0; --y) {
-            for (let x = 0; x < COLS; ++x) { if (arena[y][x] === 0) continue outer; }
-            const row = arena.splice(y, 1)[0].fill(0);
-            arena.unshift(row);
-            updateScore(100);
-        }
-    }
-
-    let lastTime = 0, dropCounter = 0;
-    function update(time = 0) {
-        if (!active) return;
-        const dt = time - lastTime; lastTime = time;
-        dropCounter += dt;
-        if (dropCounter > 800) { 
-            piece.pos.y++;
-            if (collide(arena, piece)) { piece.pos.y--; merge(arena, piece); sweep(); resetPiece(); }
-            dropCounter = 0;
-        }
-        draw(); requestAnimationFrame(update);
-    }
-
-    function draw() {
-        ctx.clearRect(0,0,canvas.width, canvas.height);
-        
-        const drawRect = (x, y, color, isGhost) => {
-            ctx.fillStyle = color;
-            ctx.shadowBlur = isGhost ? 0 : 20;
-            ctx.shadowColor = color;
-            
-            // Основной куб
-            ctx.beginPath();
-            ctx.roundRect(x * BW + 2, y * BH + 2, BW - 4, BH - 4, 6);
-            ctx.fill();
-            
-            // Блик сверху (для эффекта стекла)
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.fillRect(x * BW + 6, y * BH + 6, BW/3, 3);
-            ctx.shadowBlur = 0;
-        };
-
-        arena.forEach((row, y) => row.forEach((v, x) => { if (v) drawRect(x, y, colors[v], false); }));
-        piece.matrix.forEach((row, y) => row.forEach((v, x) => { if (v) drawRect(x + piece.pos.x, y + piece.pos.y, colors[v], false); }));
-    }
-
-    // Управление
-    const move = (dir) => { piece.pos.x += dir; if(collide(arena, piece)) piece.pos.x -= dir; };
-    const rotate = () => {
-        const m = piece.matrix;
-        for (let y = 0; y < m.length; ++y) for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
-        m.forEach(r => r.reverse());
-        if (collide(arena, piece)) { m.forEach(r => r.reverse()); for (let y = 0; y < m.length; ++y) for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
-    };
-
-    document.getElementById('m-l').onclick = () => move(-1);
-    document.getElementById('m-r').onclick = () => move(1);
-    document.getElementById('m-d').onclick = () => { piece.pos.y++; if(collide(arena, piece)) { piece.pos.y--; merge(arena, piece); sweep(); resetPiece(); }};
-    document.getElementById('m-rot').onclick = rotate;
-
+    // Простая анимация персонажа "дыхание"
+    setInterval(() => {
+        const hero = document.getElementById('player');
+        hero.style.bottom = hero.style.bottom === '105px' ? '100px' : '105px';
+    }, 1000);
 </script>
 </body>
 </html>
