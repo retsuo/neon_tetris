@@ -46,4 +46,264 @@
             position: relative;
             width: 100%;
             display: flex;
-            justify
+            justify-content: center;
+            align-items: center;
+            min-height: 0;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            height: 95%;
+            aspect-ratio: 12 / 20;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        /* КНОПКА СТАРТ БЕЗ РАМОК */
+        .start-btn {
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border: none;
+            padding: 18px 50px;
+            border-radius: 40px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .start-btn:active { transform: scale(0.95); }
+
+        .controls {
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 340px;
+            padding: 10px 20px 40px;
+        }
+
+        /* КНОПКИ УПРАВЛЕНИЯ БЕЗ РАМОК */
+        .btn {
+            aspect-ratio: 1/1;
+            background: rgba(255,255,255,0.05);
+            border: 2px solid var(--neon);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: var(--neon);
+            /* Дополнительная защита */
+            box-shadow: none !important;
+        }
+
+        .btn-rotate { border-color: var(--pink); color: var(--pink); grid-column: 2; }
+        .btn:active { background: rgba(0, 242, 255, 0.2); transform: scale(0.9); }
+    </style>
+</head>
+<body>
+
+<div class="score-box">
+    <div>SCORE: <span id="score">0</span></div>
+    <div>BEST: <span id="best">0</span></div>
+</div>
+
+<div id="game-container">
+    <div class="canvas-wrapper">
+        <div id="overlay">
+            <h2 style="color:var(--neon); margin-bottom:25px; letter-spacing:1px;">NEON MASTER</h2>
+            <button class="start-btn" onpointerdown="startGame()">START</button>
+        </div>
+        <canvas id="tetris"></canvas>
+    </div>
+</div>
+
+<div class="controls">
+    <div class="btn btn-rotate" id="rotate-btn">↻</div>
+    <div class="btn" id="left-btn">←</div>
+    <div class="btn" id="down-btn">↓</div>
+    <div class="btn" id="right-btn">→</div>
+</div>
+
+<script>
+    const canvas = document.getElementById('tetris');
+    const context = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const bestElement = document.getElementById('best');
+    const overlay = document.getElementById('overlay');
+
+    canvas.width = 240; canvas.height = 400;
+    context.scale(20, 20);
+
+    let gameRunning = false;
+    let score = 0;
+    let best = localStorage.getItem('neon_best_vFinal') || 0;
+    bestElement.innerText = best;
+
+    function startGame() {
+        if (gameRunning) return;
+        arena.forEach(row => row.fill(0));
+        score = 0; scoreElement.innerText = '0';
+        overlay.style.display = 'none';
+        gameRunning = true;
+        playerReset();
+        update();
+    }
+
+    // ТУРБО-ЛОГИКА
+    let timers = {};
+    function startTurbo(key, action) {
+        if (!gameRunning) return;
+        action();
+        timers[key] = setTimeout(() => {
+            timers[key] = setInterval(action, 80);
+        }, 200);
+    }
+    function stopTurbo(key) {
+        clearTimeout(timers[key]);
+        clearInterval(timers[key]);
+        delete timers[key];
+    }
+
+    const bind = (id, key, action) => {
+        const el = document.getElementById(id);
+        el.addEventListener('pointerdown', (e) => { e.preventDefault(); startTurbo(key, action); });
+        el.addEventListener('pointerup', (e) => { e.preventDefault(); stopTurbo(key); });
+        el.addEventListener('pointerleave', (e) => { e.preventDefault(); stopTurbo(key); });
+    };
+
+    bind('left-btn', 'left', () => playerMove(-1));
+    bind('right-btn', 'right', () => playerMove(1));
+    bind('down-btn', 'down', () => playerDrop());
+    
+    document.getElementById('rotate-btn').addEventListener('pointerdown', (e) => {
+        e.preventDefault(); if(gameRunning) playerRotate(1);
+    });
+
+    // МЕХАНИКА ИГРЫ
+    const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
+    const arena = Array.from({length: 20}, () => new Array(12).fill(0));
+    const player = { pos: {x: 0, y: 0}, matrix: null };
+
+    function createPiece(type) {
+        if (type === 'I') return [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]];
+        if (type === 'L') return [[0,2,0],[0,2,0],[0,2,2]];
+        if (type === 'J') return [[0,3,0],[0,3,0],[3,3,0]];
+        if (type === 'O') return [[4,4],[4,4]];
+        if (type === 'Z') return [[5,5,0],[0,5,5],[0,0,0]];
+        if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+        if (type === 'T') return [[0,0,0],[7,7,7],[0,7,0]];
+    }
+
+    function playerReset() {
+        const pieces = 'ILJOTSZ';
+        player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+        player.pos.y = 0;
+        player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        if (collide(arena, player)) {
+            gameRunning = false;
+            overlay.style.display = 'flex';
+            if (score > best) {
+                best = score;
+                localStorage.setItem('neon_best_vFinal', best);
+                bestElement.innerText = best;
+            }
+        }
+    }
+
+    function collide(arena, player) {
+        const [m, o] = [player.matrix, player.pos];
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < m[y].length; ++x) {
+                if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function playerDrop() {
+        player.pos.y++;
+        if (collide(arena, player)) {
+            player.pos.y--;
+            player.matrix.forEach((row, y) => {
+                row.forEach((v, x) => { if (v !== 0) arena[y + player.pos.y][x + player.pos.x] = v; });
+            });
+            playerReset();
+            arenaSweep();
+        }
+        dropCounter = 0;
+    }
+
+    function arenaSweep() {
+        outer: for (let y = arena.length - 1; y > 0; --y) {
+            for (let x = 0; x < arena[y].length; ++x) { if (arena[y][x] === 0) continue outer; }
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            ++y;
+            score += 10;
+        }
+        scoreElement.innerText = score;
+    }
+
+    function playerRotate(dir) {
+        const pos = player.pos.x;
+        let offset = 1;
+        const m = player.matrix;
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < y; ++x) { [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
+        }
+        m.forEach(row => row.reverse());
+        while (collide(arena, player)) {
+            player.pos.x += offset;
+            offset = -(offset + (offset > 0 ? 1 : -1));
+            if (offset > m[0].length) { player.pos.x = pos; return; }
+        }
+    }
+
+    function playerMove(dir) {
+        player.pos.x += dir;
+        if (collide(arena, player)) player.pos.x -= dir;
+    }
+
+    let dropCounter = 0;
+    let dropInterval = 800;
+    let lastTime = 0;
+
+    function update(time = 0) {
+        if (!gameRunning) return;
+        const deltaTime = time - lastTime;
+        lastTime = time;
+        dropCounter += deltaTime;
+        if (dropCounter > dropInterval) playerDrop();
+        
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        arena.forEach((row, y) => row.forEach((v, x) => {
+            if (v) { context.fillStyle = colors[v]; context.fillRect(x, y, 1, 1); }
+        }));
+        player.matrix.forEach((row, y) => row.forEach((v, x) => {
+            if (v) { context.fillStyle = colors[v]; context.fillRect(x + player.pos.x, y + player.pos.y, 1, 1); }
+        }));
+        requestAnimationFrame(update);
+    }
+</script>
+</body>
+</html>
