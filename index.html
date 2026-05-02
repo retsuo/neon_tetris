@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Brick Master PRO</title>
+    <title>Neon Brick Master ULTRA</title>
     <style>
         :root {
             --neon-primary: #00f2ff;
             --neon-secondary: #ff00de;
             --bg-color: #020202;
-            --btn-bg: rgba(255, 255, 255, 0.03);
         }
         body {
             background: var(--bg-color);
             color: #fff;
-            font-family: 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -29,68 +28,61 @@
         #game-wrapper {
             position: relative;
             width: 320px;
-            text-align: center;
-            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
         }
         canvas {
             background: #000;
             border: 2px solid #1a1a1a;
             border-radius: 12px;
-            box-shadow: 0 0 30px rgba(0, 242, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
         }
-        .header-panel {
-            width: 100%;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        .header-panel { width: 100%; margin-bottom: 10px; text-align: center; }
         .league-badge {
-            font-size: 13px;
-            padding: 6px 18px;
-            border-radius: 25px;
-            background: rgba(0, 242, 255, 0.1);
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
             border: 1px solid var(--neon-primary);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
             color: var(--neon-primary);
-            text-shadow: 0 0 5px var(--neon-primary);
+            text-transform: uppercase;
         }
         .stats-bar {
             display: flex;
             justify-content: space-around;
-            font-weight: 800;
+            margin-top: 10px;
+            font-weight: bold;
             font-size: 14px;
-            color: #fff;
         }
-        .stats-bar span { color: var(--neon-primary); text-shadow: 0 0 8px var(--neon-primary); }
-        
+        .stats-bar span { color: var(--neon-primary); }
+
         #menu-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.92);
-            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10;
+            z-index: 100;
             border-radius: 12px;
         }
-        h1 { font-size: 36px; color: var(--neon-primary); text-shadow: 0 0 20px var(--neon-primary); margin: 0 0 20px 0; }
+        h1 { font-size: 32px; color: var(--neon-primary); text-shadow: 0 0 15px var(--neon-primary); margin: 0; }
+        
+        /* КНОПКА СТАРТ С ВЫСОКИМ ПРИОРИТЕТОМ */
         .start-btn {
-            padding: 18px 50px;
+            margin-top: 20px;
+            padding: 15px 45px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
             color: #000;
             border: none;
-            border-radius: 40px;
-            font-size: 22px;
+            border-radius: 30px;
+            font-size: 20px;
             font-weight: 900;
-            text-transform: uppercase;
+            cursor: pointer;
+            z-index: 101;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
         }
 
         .controls {
@@ -99,222 +91,52 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 20px 20px 20px;
+            padding: 10px 20px 30px 20px;
         }
-        .control-group-center { display: flex; flex-direction: column; gap: 15px; }
         .btn {
-            width: 75px;
-            height: 75px;
-            background: var(--btn-bg);
-            backdrop-filter: blur(4px);
+            width: 70px;
+            height: 70px;
+            background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 50%;
             color: #fff;
-            font-size: 32px;
+            font-size: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            -webkit-user-select: none;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .btn.side { border-color: var(--neon-secondary); color: var(--neon-secondary); }
         .btn.main { border-color: var(--neon-primary); color: var(--neon-primary); }
-        .btn:active { transform: scale(0.9); background: rgba(255,255,255,0.15); }
+        .btn:active { transform: scale(0.9); background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
 
 <div id="game-wrapper">
     <div class="header-panel">
+        <span class="league-badge" id="league">League: Bronze</span>
         <div class="stats-bar">
             <div>SCORE: <span id="score">0</span></div>
             <div>BEST: <span id="best">0</span></div>
         </div>
-        <div><span class="league-badge" id="league">LEAGUE: BRONZE</span></div>
     </div>
 
     <div id="game-container" style="position: relative;">
         <div id="menu-overlay">
             <h1>NEON MASTER</h1>
-            <p id="final-msg" style="margin-bottom: 25px; color: #aaa;"></p>
-            <button class="start-btn" onclick="startGame()">START</button>
+            <p id="final-msg" style="margin: 10px 0; color: #aaa;"></p>
+            <button class="start-btn" id="start-button">START</button>
         </div>
         <canvas id="tetris" width="240" height="400"></canvas>
     </div>
 </div>
 
 <div class="controls">
-    <div class="btn side" onmousedown="playerMove(-1)" ontouchstart="playerMove(-1)">←</div>
-    
-    <div class="control-group-center">
-        <div class="btn main" onmousedown="playerRotate(1)" ontouchstart="playerRotate(1)">↻</div>
-        <div class="btn main" 
-             onmousedown="startFastDrop()" 
-             onmouseup="stopFastDrop()" 
-             ontouchstart="startFastDrop()" 
-             ontouchend="stopFastDrop()">↓</div>
+    <div class="btn side" id="left-btn">←</div>
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="btn main" id="rotate-btn">↻</div>
+        <div class="btn main" id="down-btn">↓</div>
     </div>
-    
-    <div class="btn side" onmousedown="playerMove(1)" ontouchstart="playerMove(1)">→</div>
-</div>
-
-<script>
-const canvas = document.getElementById('tetris');
-const context = canvas.getContext('2d');
-const scoreElement = document.getElementById('score');
-const bestElement = document.getElementById('best');
-const leagueElement = document.getElementById('league');
-const menu = document.getElementById('menu-overlay');
-
-context.scale(20, 20);
-
-let stats = JSON.parse(localStorage.getItem('tetris_v3_stats')) || { best: 0 };
-bestElement.innerText = stats.best;
-
-let normalSpeed = 800;
-let fastSpeed = 50; // Скорость при зажатии
-
-function startFastDrop() { if(gameRunning) dropInterval = fastSpeed; }
-function stopFastDrop() { if(gameRunning) dropInterval = normalSpeed; }
-
-function updateLeague(score) {
-    let league = "Bronze";
-    if (score > 150) league = "Silver";
-    if (score > 600) league = "Gold";
-    if (score > 1200) league = "Diamond";
-    if (score > 3000) league = "Elite";
-    leagueElement.innerText = "League: " + league;
-}
-
-function arenaSweep() {
-    let rowCount = 1;
-    outer: for (let y = arena.length - 1; y > 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) continue outer;
-        }
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
-        player.score += rowCount * 10;
-        rowCount *= 2;
-    }
-    updateScore();
-    updateLeague(player.score);
-    // Увеличиваем сложность каждые 100 очков
-    normalSpeed = Math.max(100, 800 - Math.floor(player.score / 100) * 50);
-}
-
-function collide(arena, player) {
-    const [m, o] = [player.matrix, player.pos];
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
-        }
-    }
-    return false;
-}
-
-function createPiece(type) {
-    if (type === 'T') return [[0,0,0],[1,1,1],[0,1,0]];
-    if (type === 'O') return [[2,2],[2,2]];
-    if (type === 'L') return [[0,3,0],[0,3,0],[0,3,3]];
-    if (type === 'J') return [[0,4,0],[0,4,0],[4,4,0]];
-    if (type === 'I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
-    if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
-    if (type === 'Z') return [[7,7,0],[0,7,7],[0,0,0]];
-}
-
-function draw() {
-    context.fillStyle = '#000';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    drawMatrix(arena, {x: 0, y: 0});
-    drawMatrix(player.matrix, player.pos);
-}
-
-const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
-
-function drawMatrix(matrix, offset) {
-    matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) {
-                context.shadowBlur = 10;
-                context.shadowColor = colors[value];
-                context.fillStyle = colors[value];
-                context.fillRect(x + offset.x, y + offset.y, 1, 1);
-                context.shadowBlur = 0;
-            }
-        });
-    });
-}
-
-function merge(arena, player) {
-    player.matrix.forEach((row, y) => {
-        row.forEach((value, x) => {
-            if (value !== 0) arena[y + player.pos.y][x + player.pos.x] = value;
-        });
-    });
-}
-
-function playerDrop() {
-    player.pos.y++;
-    if (collide(arena, player)) {
-        player.pos.y--;
-        merge(arena, player);
-        playerReset();
-        arenaSweep();
-    }
-    dropCounter = 0;
-}
-
-function playerMove(dir) {
-    player.pos.x += dir;
-    if (collide(arena, player)) player.pos.x -= dir;
-}
-
-function playerReset() {
-    const pieces = 'ILJOTSZ';
-    player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
-    player.pos.y = 0;
-    player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
-    if (collide(arena, player)) {
-        gameRunning = false;
-        if (player.score > stats.best) {
-            stats.best = player.score;
-            localStorage.setItem('tetris_v3_stats', JSON.stringify(stats));
-            bestElement.innerText = stats.best;
-        }
-        document.getElementById('final-msg').innerText = "SCORE: " + player.score;
-        menu.style.display = 'flex';
-    }
-}
-
-function startGame() {
-    arena.forEach(row => row.fill(0));
-    player.score = 0;
-    normalSpeed = 800;
-    dropInterval = normalSpeed;
-    updateScore();
-    updateLeague(0);
-    menu.style.display = 'none';
-    playerReset();
-    gameRunning = true;
-    lastTime = performance.now();
-    update();
-}
-
-function playerRotate(dir) {
-    const pos = player.pos.x;
-    let offset = 1;
-    rotate(player.matrix, dir);
-    while (collide(arena, player)) {
-        player.pos.x += offset;
-        offset = -(offset + (offset > 0 ? 1 : -1));
-        if (offset > player.matrix[0].length) {
-            rotate(player.matrix, -dir);
-            player.pos.x = pos;
-            return;
-        }
-    }
-}
-
-function rotate(matrix
+    <div class="btn side" id="right
