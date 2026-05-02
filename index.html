@@ -3,132 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Master Final</title>
+    <title>Neon Master Pro</title>
     <style>
         :root { --neon: #00f2ff; --pink: #ff00de; }
-
-        /* УБИРАЕМ ВСЕ КВАДРАТЫ И ПОДСВЕТКИ */
         * {
             box-sizing: border-box;
-            -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
             -webkit-tap-highlight-color: transparent !important;
-            -webkit-touch-callout: none !important;
             outline: none !important;
-            user-select: none !important;
-            -webkit-user-select: none !important;
+            user-select: none;
             touch-action: none;
         }
-
         body {
             background: #000;
             color: #fff;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, sans-serif;
             margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             height: 100vh;
             overflow: hidden;
-            padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
         }
-
+        .header { padding: 10px; text-align: center; width: 100%; }
         .score-box {
-            padding: 15px;
-            display: flex;
-            gap: 40px;
-            font-weight: 900;
-            font-size: 18px;
-            text-shadow: 0 0 10px var(--neon);
+            display: flex; justify-content: space-around;
+            font-weight: 900; font-size: 18px; text-shadow: 0 0 10px var(--neon);
         }
-
         #game-container {
-            flex: 1;
-            position: relative;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 0;
+            flex: 1; position: relative; width: 100%;
+            display: flex; justify-content: center; align-items: center;
         }
-
         .canvas-wrapper {
-            position: relative;
-            height: 95%;
-            aspect-ratio: 12 / 20;
-            border: 2px solid #333;
-            border-radius: 10px;
-            background: #000;
-            overflow: hidden;
+            position: relative; height: 95%; aspect-ratio: 12 / 20;
+            border: 2px solid #333; border-radius: 8px; background: #000;
         }
-
         canvas { width: 100%; height: 100%; display: block; }
-
         #overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+            position: absolute; inset: 0; background: rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;
         }
-
-        /* КНОПКА СТАРТ БЕЗ РАМОК */
         .start-btn {
-            background: linear-gradient(135deg, #ffd700, #ff8c00);
-            border: none;
-            padding: 18px 50px;
-            border-radius: 40px;
-            font-size: 22px;
-            font-weight: bold;
-            color: #000;
-            box-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
-            cursor: pointer;
-            transition: transform 0.1s;
+            background: #ffd700; border: none; padding: 15px 40px;
+            border-radius: 30px; font-size: 20px; font-weight: bold;
         }
-        .start-btn:active { transform: scale(0.95); }
-
+        /* УПОРЯДОЧЕННЫЕ КНОПКИ */
         .controls {
-            flex: 0 0 auto;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            width: 100%;
-            max-width: 340px;
-            padding: 10px 20px 40px;
+            flex: 0 0 auto; display: grid;
+            grid-template-columns: repeat(3, 80px);
+            grid-template-rows: repeat(2, 80px);
+            gap: 10px; padding-bottom: 30px; margin-top: 10px;
         }
-
-        /* КНОПКИ УПРАВЛЕНИЯ БЕЗ РАМОК */
         .btn {
-            aspect-ratio: 1/1;
-            background: rgba(255,255,255,0.05);
-            border: 2px solid var(--neon);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            color: var(--neon);
-            /* Дополнительная защита */
-            box-shadow: none !important;
+            width: 80px; height: 80px; background: rgba(255,255,255,0.05);
+            border: 2px solid var(--neon); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: var(--neon);
         }
-
-        .btn-rotate { border-color: var(--pink); color: var(--pink); grid-column: 2; }
         .btn:active { background: rgba(0, 242, 255, 0.2); transform: scale(0.9); }
+        .btn-rotate { border-color: var(--pink); color: var(--pink); grid-column: 2; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
     </style>
 </head>
 <body>
 
-<div class="score-box">
-    <div>SCORE: <span id="score">0</span></div>
-    <div>BEST: <span id="best">0</span></div>
+<div class="header">
+    <div class="score-box">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>BEST: <span id="best">0</span></div>
+    </div>
 </div>
 
 <div id="game-container">
     <div class="canvas-wrapper">
         <div id="overlay">
-            <h2 style="color:var(--neon); margin-bottom:25px; letter-spacing:1px;">NEON MASTER</h2>
+            <h2 style="color:var(--neon); margin-bottom:20px;">NEON MASTER</h2>
             <button class="start-btn" onpointerdown="startGame()">START</button>
         </div>
         <canvas id="tetris"></canvas>
@@ -137,9 +87,9 @@
 
 <div class="controls">
     <div class="btn btn-rotate" id="rotate-btn">↻</div>
-    <div class="btn" id="left-btn">←</div>
-    <div class="btn" id="down-btn">↓</div>
-    <div class="btn" id="right-btn">→</div>
+    <div class="btn btn-left" id="left-btn">←</div>
+    <div class="btn btn-down" id="down-btn">↓</div>
+    <div class="btn btn-right" id="right-btn">→</div>
 </div>
 
 <script>
@@ -154,50 +104,43 @@
 
     let gameRunning = false;
     let score = 0;
-    let best = localStorage.getItem('neon_best_vFinal') || 0;
+    let best = localStorage.getItem('neon_best') || 0;
     bestElement.innerText = best;
 
-    function startGame() {
-        if (gameRunning) return;
-        arena.forEach(row => row.fill(0));
-        score = 0; scoreElement.innerText = '0';
-        overlay.style.display = 'none';
-        gameRunning = true;
-        playerReset();
-        update();
+    // СЕТКА
+    function drawGrid() {
+        context.strokeStyle = '#111'; 
+        context.lineWidth = 0.05;
+        for (let x = 0; x <= 12; x++) {
+            context.beginPath(); context.moveTo(x, 0); context.lineTo(x, 20); context.stroke();
+        }
+        for (let y = 0; y <= 20; y++) {
+            context.beginPath(); context.moveTo(0, y); context.lineTo(12, y); context.stroke();
+        }
     }
 
-    // ТУРБО-ЛОГИКА
+    // ТУРБО
     let timers = {};
     function startTurbo(key, action) {
         if (!gameRunning) return;
         action();
-        timers[key] = setTimeout(() => {
-            timers[key] = setInterval(action, 80);
-        }, 200);
+        timers[key] = setTimeout(() => { timers[key] = setInterval(action, 80); }, 200);
     }
-    function stopTurbo(key) {
-        clearTimeout(timers[key]);
-        clearInterval(timers[key]);
-        delete timers[key];
-    }
+    function stopTurbo(key) { clearTimeout(timers[key]); clearInterval(timers[key]); delete timers[key]; }
 
     const bind = (id, key, action) => {
         const el = document.getElementById(id);
         el.addEventListener('pointerdown', (e) => { e.preventDefault(); startTurbo(key, action); });
-        el.addEventListener('pointerup', (e) => { e.preventDefault(); stopTurbo(key); });
-        el.addEventListener('pointerleave', (e) => { e.preventDefault(); stopTurbo(key); });
+        el.addEventListener('pointerup', () => stopTurbo(key));
+        el.addEventListener('pointerleave', () => stopTurbo(key));
     };
 
     bind('left-btn', 'left', () => playerMove(-1));
     bind('right-btn', 'right', () => playerMove(1));
     bind('down-btn', 'down', () => playerDrop());
-    
-    document.getElementById('rotate-btn').addEventListener('pointerdown', (e) => {
-        e.preventDefault(); if(gameRunning) playerRotate(1);
-    });
+    document.getElementById('rotate-btn').onpointerdown = (e) => { e.preventDefault(); if(gameRunning) playerRotate(1); };
 
-    // МЕХАНИКА ИГРЫ
+    // ЛОГИКА
     const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
     const arena = Array.from({length: 20}, () => new Array(12).fill(0));
     const player = { pos: {x: 0, y: 0}, matrix: null };
@@ -218,21 +161,16 @@
         player.pos.y = 0;
         player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
         if (collide(arena, player)) {
-            gameRunning = false;
-            overlay.style.display = 'flex';
-            if (score > best) {
-                best = score;
-                localStorage.setItem('neon_best_vFinal', best);
-                bestElement.innerText = best;
-            }
+            gameRunning = false; overlay.style.display = 'flex';
+            if (score > best) { best = score; localStorage.setItem('neon_best', best); bestElement.innerText = best; }
         }
     }
 
-    function collide(arena, player) {
-        const [m, o] = [player.matrix, player.pos];
+    function collide(a, p) {
+        const [m, o] = [p.matrix, p.pos];
         for (let y = 0; y < m.length; ++y) {
             for (let x = 0; x < m[y].length; ++x) {
-                if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+                if (m[y][x] !== 0 && (a[y + o.y] && a[y + o.y][x + o.x]) !== 0) return true;
             }
         }
         return false;
@@ -245,8 +183,7 @@
             player.matrix.forEach((row, y) => {
                 row.forEach((v, x) => { if (v !== 0) arena[y + player.pos.y][x + player.pos.x] = v; });
             });
-            playerReset();
-            arenaSweep();
+            playerReset(); arenaSweep();
         }
         dropCounter = 0;
     }
@@ -254,17 +191,14 @@
     function arenaSweep() {
         outer: for (let y = arena.length - 1; y > 0; --y) {
             for (let x = 0; x < arena[y].length; ++x) { if (arena[y][x] === 0) continue outer; }
-            const row = arena.splice(y, 1)[0].fill(0);
-            arena.unshift(row);
-            ++y;
-            score += 10;
+            arena.splice(y, 1); arena.unshift(new Array(12).fill(0));
+            score += 10; y++;
         }
         scoreElement.innerText = score;
     }
 
     function playerRotate(dir) {
-        const pos = player.pos.x;
-        let offset = 1;
+        const pos = player.pos.x; let offset = 1;
         const m = player.matrix;
         for (let y = 0; y < m.length; ++y) {
             for (let x = 0; x < y; ++x) { [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
@@ -277,24 +211,27 @@
         }
     }
 
-    function playerMove(dir) {
-        player.pos.x += dir;
-        if (collide(arena, player)) player.pos.x -= dir;
-    }
+    function playerMove(dir) { player.pos.x += dir; if (collide(arena, player)) player.pos.x -= dir; }
 
-    let dropCounter = 0;
-    let dropInterval = 800;
-    let lastTime = 0;
+    let dropCounter = 0, dropInterval = 800, lastTime = 0;
+
+    function startGame() {
+        arena.forEach(row => row.fill(0));
+        score = 0; scoreElement.innerText = '0';
+        overlay.style.display = 'none';
+        gameRunning = true; playerReset(); update();
+    }
 
     function update(time = 0) {
         if (!gameRunning) return;
-        const deltaTime = time - lastTime;
-        lastTime = time;
+        const deltaTime = time - lastTime; lastTime = time;
         dropCounter += deltaTime;
         if (dropCounter > dropInterval) playerDrop();
         
         context.fillStyle = '#000';
         context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        drawGrid(); // Рисуем сетку
         
         arena.forEach((row, y) => row.forEach((v, x) => {
             if (v) { context.fillStyle = colors[v]; context.fillRect(x, y, 1, 1); }
