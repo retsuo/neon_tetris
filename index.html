@@ -3,199 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Retsuo Dash v1.0</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&family=Rowdies:wght@700&display=swap" rel="stylesheet">
+    <title>RETSUO DASH PRO</title>
     <style>
-        :root { --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --bg: #030305; --grid: rgba(255,255,255,0.02); }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; outline: none; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Rowdies', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-
-        /* Верхняя панель ресурсов */
-        .hud { display: flex; justify-content: space-around; padding: 15px; background: rgba(0,0,0,0.8); z-index: 100; border-bottom: 1px solid #222; }
-        .res-item { display: flex; align-items: center; gap: 8px; font-weight: bold; }
-        .res-icon { width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
-
-        /* Игровое поле (Canvas) */
-        #game-container { flex: 1; position: relative; background: #000; overflow: hidden; border-top: 1px solid #333; }
-        canvas { display: block; position: absolute; inset: 0; }
-
-        /* Главный экран и Конец Игры */
-        .overlay { 
-            position: absolute; inset: 0; z-index: 100; background: rgba(0,0,0,0.9);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(10px); text-align: center; 
-        }
-        .logo-dash { 
-            font-family: 'Orbitron', sans-serif; font-size: 40px; font-weight: 900; letter-spacing: 2px;
-            background: linear-gradient(to right, #fff 0%, var(--neon) 50%, var(--pink) 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 25px; filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5));
-        }
-        .btn-dash { 
-            background: var(--neon); border: none; padding: 18px 60px; border-radius: 50px; 
-            font-family: 'Rowdies'; font-size: 20px; color: #000; cursor: pointer; box-shadow: 0 0 30px var(--neon);
-        }
-        .btn-dash:active { transform: scale(0.95); }
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui { position: fixed; top: 20px; left: 0; width: 100%; display: flex; justify-content: space-around; color: #00f2ff; font-weight: bold; font-size: 20px; text-shadow: 0 0 10px #00f2ff; z-index: 10; pointer-events: none; }
     </style>
 </head>
 <body>
 
-<div class="hud">
-    <div class="res-item" style="color:var(--gold)"><div class="res-icon" style="background:var(--gold)"></div> <span id="ui-best">0</span></div>
-    <div class="res-item" style="color:var(--neon)"><div class="res-icon" style="background:var(--neon)"></div> <span id="ui-score">0</span></div>
+<div id="ui">
+    <div>BEST: <span id="best">0</span></div>
+    <div>SCORE: <span id="score">0</span></div>
 </div>
+<canvas id="game"></canvas>
 
-<div id="game-container">
-    <canvas id="game"></canvas>
-    
-    <div id="overlay-start" class="overlay">
-        <div class="logo-dash">RETSUO<br>DASH</div>
-        <button class="btn-dash" onclick="startGame()">START</button>
-        <p style="color:#555; font-size:10px; margin-top:15px; letter-spacing:2px;">TAP TO JUMP</p>
-    </div>
-</div>
-
-<script type="module">
-    // Подключаем Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-    const firebaseConfig = {
-        databaseURL: "https://retsuo-default-rtdb.europe-west1.firebasedatabase.app"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
+<script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    const uiBest = document.getElementById('ui-best');
-    const uiScore = document.getElementById('ui-score');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
 
-    let score = 0, best = localStorage.getItem('dash_best') || 0, active = false;
-    let myName = localStorage.getItem('player_name') || "";
-    uiBest.innerText = best;
+    let score = 0;
+    let best = localStorage.getItem('dash_pro_best') || 0;
+    bestEl.innerText = best;
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - document.querySelector('.hud').offsetHeight;
-    }
-    window.addEventListener('resize', resize); resize();
+    // Настройки
+    const settings = {
+        gravity: 0.8,
+        jumpPower: -13,
+        speed: 9,
+        groundY: 100
+    };
 
-    // Физика и Персонаж
-    const GROUND_Y = 120; // Высота пола
     const player = {
-        x: 80, y: 0, w: 30, h: 30, color: '#00f2ff',
-        dy: 0, jump_v: 12, gravity: 0.7, onGround: false, rotateAngle: 0
+        x: 100, y: 0, w: 40, h: 40,
+        dy: 0, angle: 0, onGround: false
     };
 
     let obstacles = [];
-    let speed = 8;
-    let gridOffset = 0;
+    let particles = [];
+    let bgOffset = 0;
 
-    // Прыжок при тапе
-    window.addEventListener('touchstart', (e) => {
-        if(!active || e.target.closest('.hud')) return;
-        e.preventDefault();
-        if (player.onGround) {
-            player.dy = -player.jump_v;
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        player.y = canvas.height - settings.groundY - player.h;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Прыжок
+    window.addEventListener('touchstart', () => {
+        if(player.onGround) {
+            player.dy = settings.jumpPower;
             player.onGround = false;
         }
     });
 
-    // Рисование шипа (Треугольника)
-    function drawSpike(x, y, w, h) {
-        ctx.fillStyle = '#ff00de'; ctx.shadowBlur = 10; ctx.shadowColor = '#ff00de';
-        ctx.beginPath();
-        ctx.moveTo(x, y + h); ctx.lineTo(x + w/2, y); ctx.lineTo(x + w, y + h);
-        ctx.closePath(); ctx.fill();
+    function createParticle(x, y) {
+        particles.push({ x, y, size: Math.random() * 5, life: 1, dx: -2, dy: Math.random() * 2 - 1 });
+    }
+
+    function update() {
+        // Фоновая сетка (Параллакс)
+        bgOffset = (bgOffset - settings.speed * 0.3) % 100;
+
+        // Физика
+        player.dy += settings.gravity;
+        player.y += player.dy;
+
+        const groundLevel = canvas.height - settings.groundY - player.h;
+        if (player.y >= groundLevel) {
+            player.y = groundLevel;
+            player.dy = 0;
+            player.onGround = true;
+            // Сглаживание угла при приземлении
+            player.angle = Math.round(player.angle / (Math.PI/2)) * (Math.PI/2);
+        } else {
+            player.angle += 0.15; // Вращение в воздухе
+        }
+
+        // Спавн препятствий
+        if (Math.random() < 0.02) {
+            if (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 400) {
+                obstacles.push({ x: canvas.width, w: 40, h: 40 });
+            }
+        }
+
+        // Обновление частиц
+        particles.forEach((p, i) => {
+            p.x += p.dx; p.y += p.dy; p.life -= 0.02;
+            if(p.life <= 0) particles.splice(i, 1);
+        });
+
+        if(player.onGround) createParticle(player.x, player.y + player.h);
+
+        // Обновление препятствий
+        obstacles.forEach((obs, i) => {
+            obs.x -= settings.speed;
+            if(obs.x < -100) {
+                obstacles.splice(i, 1);
+                score++;
+                scoreEl.innerText = score;
+            }
+
+            // Коллизия
+            if (player.x < obs.x + obs.w - 5 && player.x + player.w > obs.x + 5 &&
+                player.y < canvas.height - settings.groundY - 5 && player.y + player.h > canvas.height - settings.groundY - obs.h + 5) {
+                reset();
+            }
+        });
+    }
+
+    function draw() {
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Сетка фона
+        ctx.strokeStyle = '#111';
+        for(let x = bgOffset; x < canvas.width; x += 100) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+
+        // Пол
+        ctx.fillStyle = '#00f2ff';
+        ctx.fillRect(0, canvas.height - settings.groundY, canvas.width, 2);
+
+        // Частицы
+        particles.forEach(p => {
+            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        });
+
+        // Игрок
+        ctx.save();
+        ctx.translate(player.x + player.w/2, player.y + player.h/2);
+        ctx.rotate(player.angle);
+        ctx.fillStyle = '#00f2ff';
+        ctx.shadowBlur = 15; ctx.shadowColor = '#00f2ff';
+        ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        ctx.strokeRect(-player.w/2 + 5, -player.h/2 + 5, player.w - 10, player.h - 10);
+        ctx.restore();
+
+        // Препятствия (Шипы)
+        ctx.shadowBlur = 10; ctx.shadowColor = '#ff00de';
+        ctx.fillStyle = '#ff00de';
+        obstacles.forEach(obs => {
+            ctx.beginPath();
+            ctx.moveTo(obs.x, canvas.height - settings.groundY);
+            ctx.lineTo(obs.x + obs.w/2, canvas.height - settings.groundY - obs.h);
+            ctx.lineTo(obs.x + obs.w, canvas.height - settings.groundY);
+            ctx.fill();
+        });
         ctx.shadowBlur = 0;
     }
 
-    function spawnObstacle() {
-        const x = canvas.width + 50;
-        const y = canvas.height - GROUND_Y - 30; // 30 - высота шипа
-        obstacles.push({ x: x, y: y, w: 30, h: 30 });
-    }
-
-    let spawnTimer = 0;
-
-    window.startGame = () => {
-        document.getElementById('overlay-start').style.display = 'none';
-        score = 0; uiScore.innerText = 0;
-        speed = 8; obstacles = []; player.y = canvas.height - GROUND_Y - player.h; player.dy = 0;
-        active = true; animate();
-    };
-
-    function animate() {
-        if(!active) return;
-        ctx.fillStyle = '#0a0a0c'; ctx.fillRect(0, 0, canvas.width, canvas.height); // Фон
-        
-        // Рисуем пол
-        const groundHeight = canvas.height - GROUND_Y;
-        ctx.fillStyle = '#111'; ctx.fillRect(0, groundHeight, canvas.width, GROUND_Y);
-        // Анимированный пол (полоски)
-        gridOffset = (gridOffset - speed) % 40;
-        ctx.fillStyle = 'rgba(255,255,255,0.02)';
-        for (let i = 0; i < canvas.width; i += 40) {
-            ctx.fillRect(i + gridOffset, groundHeight, 1, GROUND_Y);
-        }
-
-        // Физика персонажа
-        player.dy += player.gravity;
-        player.y += player.dy;
-
-        // Коллизия с полом
-        if (player.y > groundHeight - player.h) {
-            player.y = groundHeight - player.h;
-            player.dy = 0;
-            player.onGround = true;
-            player.rotateAngle = 0; // Сброс вращения на полу
-        }
-
-        // Вращение куба в прыжке
-        if(!player.onGround) player.rotateAngle += 0.2;
-
-        // Отрисовка игрока (Куба)
-        ctx.save();
-        ctx.translate(player.x + player.w/2, player.y + player.h/2); ctx.rotate(player.rotateAngle);
-        ctx.fillStyle = player.color; ctx.shadowBlur = 15; ctx.shadowColor = player.color;
-        // Куб с бликом
-        ctx.fillRect(-player.w/2 + 2, -player.h/2 + 2, player.w-4, player.h-4); ctx.shadowBlur = 0;
-        ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(-player.w/2 + 6, -player.h/2 + 6, player.w/3, 3);
-        ctx.restore();
-
-        // Препятствия
-        spawnTimer++;
-        if(spawnTimer > Math.max(30, 80 - speed)) { spawnObstacle(); spawnTimer = 0; score++; uiScore.innerText = score; }
-
-        obstacles.forEach((obs, i) => {
-            obs.x -= speed;
-            drawSpike(obs.x, obs.y, obs.w, obs.h);
-
-            // Жесткая коллизия (AABB)
-            if (player.x + 5 < obs.x + obs.w - 5 && player.x + player.w - 5 > obs.x + 5 &&
-                player.y + 5 < obs.y + obs.h - 5 && player.y + player.h - 5 > obs.y + 5) {
-                gameOver();
-            }
-            if(obs.x < -50) obstacles.splice(i, 1);
-        });
-
-        // Плавное ускорение
-        speed += 0.001;
-        requestAnimationFrame(animate);
-    }
-
-    function gameOver() {
-        active = false;
+    function reset() {
         if(score > best) {
-            best = score; localStorage.setItem('dash_best', best);
-            uiBest.innerText = best;
-            // Сохранение рекорда в Firebase под именем Abdrakhman
-            set(ref(db, 'players/Abdrakhman'), { best: best });
+            best = score;
+            localStorage.setItem('dash_pro_best', best);
+            bestEl.innerText = best;
         }
-        document.getElementById('overlay-start').style.display = 'flex';
-        document.querySelector('.btn-dash').innerText = 'TRY AGAIN';
+        score = 0;
+        scoreEl.innerText = 0;
+        obstacles = [];
+        player.dy = 0;
+        player.angle = 0;
     }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+
+    loop();
 </script>
 </body>
 </html>
