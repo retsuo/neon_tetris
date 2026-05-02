@@ -3,106 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cyber Quest: Evolution</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <title>Neon Gravity Glitch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
-        :root { 
-            --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --red: #ff3e3e;
-            --bg: #050508; --panel: rgba(20, 20, 27, 0.9);
-        }
+        :root { --neon: #00f2ff; --pink: #ff00de; --bg: #030305; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             margin: 0; background: var(--bg); color: #fff; 
-            font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh;
+            font-family: 'Orbitron', sans-serif; overflow: hidden; 
+            display: flex; flex-direction: column; height: 100vh;
         }
 
-        /* HEADER */
-        .top-bar { 
-            display: flex; justify-content: space-around; padding: 15px; 
-            background: var(--panel); border-bottom: 1px solid #333; z-index: 100;
+        /* UI Панель */
+        .hud { 
+            display: flex; justify-content: space-between; padding: 20px; 
+            background: rgba(0,0,0,0.5); z-index: 10; backdrop-filter: blur(5px);
         }
-        .res-item { display: flex; align-items: center; gap: 8px; font-family: 'Orbitron', sans-serif; font-size: 14px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+        .score-box { text-shadow: 0 0 10px var(--neon); font-size: 20px; }
 
-        /* GAME WORLD */
-        #world { 
-            flex: 1; position: relative; height: 60vh;
-            background: linear-gradient(to bottom, #050508 0%, #1a1a2e 100%);
-            overflow: hidden; border-bottom: 2px solid #222;
+        /* Игровая зона */
+        #game-container { flex: 1; position: relative; overflow: hidden; perspective: 500px; }
+        canvas { display: block; }
+
+        /* Эффект Глитча при проигрыше */
+        .overlay { 
+            position: absolute; inset: 0; background: rgba(255, 0, 222, 0.2); 
+            display: none; flex-direction: column; align-items: center; 
+            justify-content: center; z-index: 100; backdrop-filter: blur(10px);
         }
-        
-        /* Стили персонажей */
-        .entity { position: absolute; bottom: 80px; transition: 0.2s; background-size: contain; background-repeat: no-repeat; }
-        #player { 
-            left: 50px; width: 100px; height: 130px; 
-            background-image: url('https://cdn-icons-png.flaticon.com/512/4333/4333609.png');
-            filter: drop-shadow(0 0 15px var(--neon));
-        }
-        .enemy { 
-            right: -100px; width: 80px; height: 110px; 
-            background-image: url('https://cdn-icons-png.flaticon.com/512/1162/1162456.png');
-            filter: drop-shadow(0 0 10px var(--red)) hue-rotate(300deg);
+        .btn-start { 
+            background: var(--neon); border: none; padding: 20px 50px; 
+            border-radius: 50px; font-family: 'Orbitron'; font-weight: 900;
+            box-shadow: 0 0 30px var(--neon); cursor: pointer;
         }
 
-        /* Боевой UI */
-        .hp-container { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 80%; text-align: center; }
-        .hp-bar { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; border: 1px solid #444; }
-        #hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--red), #ff7b7b); transition: 0.3s; }
-
-        /* Меню навигации */
-        .nav-menu { 
-            display: flex; height: 80px; background: #000; 
-            justify-content: space-around; align-items: center; padding-bottom: 20px;
-        }
-        .nav-btn { opacity: 0.5; text-align: center; font-size: 10px; cursor: pointer; transition: 0.3s; }
-        .nav-btn.active { opacity: 1; color: var(--neon); transform: translateY(-5px); }
-        .nav-icon { font-size: 24px; display: block; margin-bottom: 4px; }
-
-        /* Всплывающие окна */
-        .modal { 
-            position: absolute; inset: 0; background: rgba(0,0,0,0.9); 
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 200;
-        }
-        .btn-action { 
-            background: var(--neon); color: #000; border: none; padding: 15px 40px; 
-            border-radius: 12px; font-weight: 900; margin-top: 20px; font-family: 'Orbitron';
+        /* Тач-зона */
+        .touch-zone { 
+            position: absolute; inset: 0; z-index: 5; 
         }
     </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <div class="res-item"><div class="dot" style="color: var(--gold); background: var(--gold);"></div> <span id="gold">0</span></div>
-    <div class="res-item"><div class="dot" style="color: var(--neon); background: var(--neon);"></div> <span id="gems">0</span></div>
-    <div class="res-item" style="color: var(--pink)">LVL: <span id="lvl">1</span></div>
+<div class="hud">
+    <div class="score-box">SCORE: <span id="score">0</span></div>
+    <div style="color: var(--pink)">BEST: <span id="best">0</span></div>
 </div>
 
-<div id="world" onclick="handleTap()">
-    <div class="hp-container">
-        <div style="font-size: 10px; margin-bottom: 5px; letter-spacing: 2px;">ENEMY STATUS</div>
-        <div class="hp-bar"><div id="hp-fill"></div></div>
-    </div>
+<div id="game-container">
+    <div class="touch-zone" id="tap-area"></div>
+    <canvas id="canvas"></canvas>
     
-    <div id="player" class="entity"></div>
-    <div id="enemies-container"></div>
-</div>
-
-<div class="nav-menu">
-    <div class="nav-btn active" onclick="showTab('hero')"><span class="nav-icon">⚔️</span>ГЕРОЙ</div>
-    <div class="nav-btn" onclick="showTab('forge')"><span class="nav-icon">🛠</span>КУЗНЯ</div>
-    <div class="nav-btn" onclick="showTab('shop')"><span class="nav-icon">💎</span>МАГАЗИН</div>
-    <div class="nav-btn" onclick="showTab('top')"><span class="nav-icon">🏆</span>ТОП</div>
-</div>
-
-<div id="shop-modal" class="modal">
-    <h2 style="font-family: 'Orbitron'; color: var(--gold);">BLACK MARKET</h2>
-    <p>Купить "Меч Неона" за 500 золота?</p>
-    <button class="btn-action" onclick="buyItem()">КУПИТЬ</button>
-    <button onclick="closeModals()" style="background:none; border:none; color:#666; margin-top:15px;">ЗАКРЫТЬ</button>
+    <div id="menu" class="overlay" style="display: flex;">
+        <h1 style="font-size: 40px; margin-bottom: 30px; text-align: center;">GRAVITY<br><span style="color:var(--neon)">GLITCH</span></h1>
+        <button class="btn-start" onclick="startGame()">START MISSION</button>
+        <p style="margin-top: 20px; font-size: 10px; opacity: 0.5;">TAP TO FLIP GRAVITY</p>
+    </div>
 </div>
 
 <script type="module">
-    // Инициализация твоей базы данных Firebase
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -110,95 +69,121 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Состояние игры (Глобальные функции)
-    window.gameState = {
-        gold: 0, gems: 0, lvl: 1, 
-        enemyHp: 100, enemyMaxHp: 100,
-        playerDamage: 10,
-        name: "Abdrakhman" // Имя из профиля
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+
+    let score = 0;
+    let best = localStorage.getItem('glitch_best') || 0;
+    bestEl.innerText = best;
+
+    let gameActive = false;
+    let gravity = 1; // 1 - вниз, -1 - вверх
+    let gameSpeed = 5;
+
+    // Параметры игрока
+    const player = {
+        x: 50, y: 0, w: 30, h: 30,
+        targetY: 0,
+        color: '#00f2ff'
     };
 
-    window.saveProgress = () => {
-        set(ref(db, 'players/' + window.gameState.name), window.gameState);
+    let obstacles = [];
+    let particles = [];
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight - 80;
+        player.y = canvas.height - 70;
+        player.targetY = player.y;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    window.startGame = () => {
+        document.getElementById('menu').style.display = 'none';
+        score = 0;
+        gameSpeed = 5;
+        obstacles = [];
+        gameActive = true;
+        animate();
     };
 
-    window.loadProgress = async () => {
-        const snapshot = await get(ref(db, 'players/' + window.gameState.name));
-        if (snapshot.exists()) {
-            window.gameState = snapshot.val();
-            updateUI();
+    document.getElementById('tap-area').addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if(!gameActive) return;
+        gravity *= -1;
+        player.targetY = gravity === 1 ? canvas.height - 70 : 40;
+    });
+
+    function spawnObstacle() {
+        const h = 60 + Math.random() * 100;
+        const isTop = Math.random() > 0.5;
+        obstacles.push({
+            x: canvas.width + 50,
+            y: isTop ? 0 : canvas.height - h,
+            w: 40,
+            h: h,
+            color: Math.random() > 0.5 ? '#ff00de' : '#ffd700'
+        });
+    }
+
+    let spawnTimer = 0;
+
+    function animate() {
+        if(!gameActive) return;
+        ctx.fillStyle = 'rgba(3, 3, 5, 0.2)'; // Эффект шлейфа
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Плавное движение игрока
+        player.y += (player.targetY - player.y) * 0.2;
+
+        // Рисуем игрока с неоновым свечением
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = player.color;
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+        ctx.shadowBlur = 0;
+
+        // Препятствия
+        spawnTimer++;
+        if(spawnTimer > Math.max(20, 60 - gameSpeed)) {
+            spawnObstacle();
+            spawnTimer = 0;
+            score++;
+            scoreEl.innerText = score;
+            gameSpeed += 0.05;
         }
-    };
-    
-    window.loadProgress();
+
+        obstacles.forEach((obs, index) => {
+            obs.x -= gameSpeed;
+            ctx.fillStyle = obs.color;
+            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+
+            // Коллизия
+            if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
+                player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                gameOver();
+            }
+
+            if(obs.x < -50) obstacles.splice(index, 1);
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        if(score > best) {
+            best = score;
+            localStorage.setItem('glitch_best', best);
+            bestEl.innerText = best;
+            // Сохраняем в твой Firebase
+            set(ref(db, 'leaderboard/Abdrakhman'), { score: best });
+        }
+        document.getElementById('menu').style.display = 'flex';
+    }
 </script>
-
-<script>
-    function updateUI() {
-        document.getElementById('gold').innerText = window.gameState.gold;
-        document.getElementById('gems').innerText = window.gameState.gems;
-        document.getElementById('lvl').innerText = window.gameState.lvl;
-        const percent = (window.gameState.enemyHp / window.gameState.enemyMaxHp) * 100;
-        document.getElementById('hp-fill').style.width = percent + "%";
-    }
-
-    function handleTap() {
-        const p = document.getElementById('player');
-        // Анимация удара
-        p.style.transform = "translateX(30px) scale(1.1)";
-        setTimeout(() => p.style.transform = "translateX(0) scale(1)", 100);
-
-        // Урон врагу
-        window.gameState.enemyHp -= window.gameState.playerDamage;
-        
-        if (window.gameState.enemyHp <= 0) {
-            // Победа над врагом
-            window.gameState.gold += 50 * window.gameState.lvl;
-            window.gameState.lvl += 1;
-            window.gameState.enemyMaxHp = Math.floor(100 * Math.pow(1.2, window.gameState.lvl));
-            window.gameState.enemyHp = window.gameState.enemyMaxHp;
-            
-            // Сохраняем в Firebase при каждом уровне
-            if(window.saveProgress) window.saveProgress();
-            
-            spawnEnemy();
-        }
-        updateUI();
-    }
-
-    function spawnEnemy() {
-        const container = document.getElementById('enemies-container');
-        container.innerHTML = '<div class="entity enemy" id="active-enemy" style="right: 50px;"></div>';
-    }
-
-    function showTab(type) {
-        if(type === 'shop') document.getElementById('shop-modal').style.display = 'flex';
-        // Логика переключения вкладок
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        event.currentTarget.classList.add('active');
-    }
-
-    function closeModals() {
-        document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
-    }
-
-    function buyItem() {
-        if(window.gameState.gold >= 500) {
-            window.gameState.gold -= 500;
-            window.gameState.playerDamage += 20;
-            alert("Урон увеличен!");
-            closeModals();
-            updateUI();
-            if(window.saveProgress) window.saveProgress();
-        } else {
-            alert("Недостаточно золота!");
-        }
-    }
-
-    // Стартовый запуск
-    spawnEnemy();
-    updateUI();
-</script>
-
 </body>
 </html>
