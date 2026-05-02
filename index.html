@@ -3,41 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Gravity Glitch v2.6</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap" rel="stylesheet">
+    <title>RETSUO GLITCH</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Exo+2:wght@700&display=swap" rel="stylesheet">
     <style>
         :root { --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --bg: #030305; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Exo 2', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 
-        /* HUD */
-        .hud { display: flex; justify-content: space-around; align-items: center; padding: 15px 25px; background: rgba(0,0,0,0.8); z-index: 10; border-bottom: 1px solid #222; backdrop-filter: blur(5px); }
-        .hud-val { font-size: 18px; font-weight: 900; }
+        /* Панель управления (HUD) */
+        .hud { display: flex; justify-content: space-around; align-items: center; padding: 15px; background: rgba(0,0,0,0.85); z-index: 10; border-bottom: 1px solid #333; }
+        .hud-val { font-size: 16px; font-weight: 900; letter-spacing: 1px; }
         .score-glow { color: var(--neon); text-shadow: 0 0 10px var(--neon); }
         .gem-glow { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
 
-        #combo-ui { position: fixed; top: 120px; left: 50%; transform: translateX(-50%); font-size: 50px; color: var(--pink); text-shadow: 0 0 25px var(--pink); display: none; z-index: 5; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+        #combo-ui { position: fixed; top: 110px; left: 50%; transform: translateX(-50%); font-size: 45px; color: var(--pink); text-shadow: 0 0 20px var(--pink); display: none; z-index: 5; pointer-events: none; }
 
-        /* Game */
-        #game-container { flex: 1; position: relative; overflow: hidden; touch-action: none; background: radial-gradient(circle at center, #111 0%, #000 100%); }
+        /* Игровая зона */
+        #game-container { flex: 1; position: relative; overflow: hidden; touch-action: none; }
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* Menu */
-        .overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(15px); }
-        .btn-start { background: var(--neon); border: none; padding: 22px 70px; border-radius: 50px; font-family: 'Orbitron'; font-weight: 900; font-size: 20px; color: #000; box-shadow: 0 0 40px rgba(0, 242, 255, 0.4); cursor: pointer; transition: 0.2s; }
-        .btn-start:active { transform: scale(0.95); box-shadow: 0 0 10px var(--neon); }
-
-        /* Поле ввода (скрывается после первого использования) */
-        #name-box { width: 80%; display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; }
-        input { width: 100%; background: #111; border: 2px solid var(--neon); border-radius: 12px; color: #fff; padding: 15px; text-align: center; font-size: 16px; font-family: sans-serif; }
+        /* Меню */
+        .overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(10px); }
+        .game-title { font-family: 'Orbitron', sans-serif; font-size: 36px; margin-bottom: 20px; text-shadow: 0 0 20px var(--neon); text-align: center; line-height: 1.2; }
+        .btn-start { background: var(--neon); border: none; padding: 18px 60px; border-radius: 50px; font-weight: 900; font-size: 18px; color: #000; box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); cursor: pointer; }
+        
+        #name-box { width: 80%; max-width: 300px; margin-bottom: 25px; }
+        input { width: 100%; background: #111; border: 2px solid var(--neon); border-radius: 12px; color: #fff; padding: 14px; text-align: center; font-size: 16px; font-family: 'Exo 2', sans-serif; }
     </style>
 </head>
 <body>
 
 <div class="hud">
-    <div class="hud-val score-glow">SCORE: <span id="score">0</span></div>
-    <div class="hud-val gem-glow">GEMS: <span id="gems">0</span></div>
-    <div style="font-size: 12px; opacity: 0.6; color:var(--gold)">BEST: <span id="best">0</span></div>
+    <div class="hud-val score-glow">СЧЕТ: <span id="score">0</span></div>
+    <div class="hud-val gem-glow">КРИСТАЛЛЫ: <span id="gems">0</span></div>
+    <div style="font-size: 11px; opacity: 0.6;">РЕКОРД: <span id="best">0</span></div>
 </div>
 
 <div id="combo-ui">x<span id="combo-val">1</span></div>
@@ -45,16 +44,16 @@
 <div id="game-container">
     <canvas id="canvas"></canvas>
     
-    <div id="menu" class="overlay" style="display:flex;">
-        <h1 style="font-size: 42px; margin-bottom: 20px; text-shadow: 0 0 20px var(--neon); text-align:center;">GRAVITY <span style="color:var(--pink)">GLITCH</span></h1>
+    <div id="menu" class="overlay">
+        <h1 class="game-title">RETSUO<br><span style="color:var(--pink)">GLITCH</span></h1>
         
         <div id="name-box">
-            <p style="color: #888; font-size: 12px; margin-bottom:10px;">Введи ник для рейтинга (один раз):</p>
-            <input type="text" id="nick-input" placeholder="Abdrakhman" maxlength="10">
+            <p style="color: #aaa; font-size: 13px; margin-bottom: 10px; text-align: center;">Твой псевдоним:</p>
+            <input type="text" id="nick-input" placeholder="RETSUO" maxlength="12">
         </div>
 
-        <button class="btn-start" onclick="startGame()">START</button>
-        <p style="margin-top: 25px; font-size: 10px; opacity: 0.4; letter-spacing: 3px;">TAP TO SWITCH SIDE</p>
+        <button class="btn-start" onclick="startGame()">ИГРАТЬ</button>
+        <p style="margin-top: 25px; font-size: 11px; opacity: 0.4; letter-spacing: 2px;">ЖМИ НА ЭКРАН ДЛЯ ПРЫЖКА</p>
     </div>
 </div>
 
@@ -75,18 +74,15 @@
 
     let state = {
         active: false,
-        score: 0,
-        // Загрузка ника и прогресса
         name: localStorage.getItem('glitch_nick') || "",
         gems: parseInt(localStorage.getItem('glitch_gems')) || 0,
-        best: localStorage.getItem('glitch_best_v2.6') || 0,
+        best: localStorage.getItem('glitch_best_rus') || 0,
         combo: 1,
         speed: 7,
-        gravity: 1, // 1 - низ, -1 - верх
-        player: { x: 80, y: 0, w: 35, h: 35, color: '#00f2ff' }
+        gravity: 1,
+        player: { x: 70, y: 0, w: 35, h: 35, color: '#00f2ff' }
     };
 
-    // Скрываем ввод ника, если он уже есть
     if (state.name) document.getElementById('name-box').style.display = 'none';
     bestEl.innerText = state.best;
     gemsEl.innerText = state.gems;
@@ -96,8 +92,9 @@
 
     function resize() {
         canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight - document.querySelector('.hud').offsetHeight;
-        updatePlayerY(true);
+        canvas.height = window.innerHeight - 80;
+        state.player.targetY = canvas.height - 80;
+        state.player.y = state.player.targetY;
     }
     window.addEventListener('resize', resize);
     resize();
@@ -105,23 +102,13 @@
     window.addEventListener('touchstart', (e) => {
         if(!state.active || e.target.closest('.hud')) return;
         state.gravity *= -1;
-        updatePlayerY(false);
+        state.player.targetY = state.gravity === 1 ? canvas.height - 80 : 40;
     });
 
-    function updatePlayerY(instant) {
-        // Учитываем safe area сверху и снизу
-        const floorY = canvas.height - state.player.h - 50;
-        const ceilY = 50;
-        state.player.targetY = state.gravity === 1 ? floorY : ceilY;
-        if(instant) state.player.y = state.player.targetY;
-    }
-
     window.startGame = () => {
-        // Проверка и сохранение ника
         if (!state.name) {
             const input = document.getElementById('nick-input').value.trim();
-            if (!input) return alert("Введи ник!");
-            state.name = input;
+            state.name = input || "RETSUO";
             localStorage.setItem('glitch_nick', state.name);
             document.getElementById('name-box').style.display = 'none';
         }
@@ -133,76 +120,86 @@
         state.speed = 7;
         obstacles = [];
         crystals = [];
-        updateScore(0);
-        updatePlayerY(true);
+        scoreEl.innerText = 0;
         animate();
     };
 
     function spawnEntity() {
         const rand = Math.random();
-        if (rand < 0.15) { // Кристалл
+        if (rand < 0.2) { // Кристаллы чаще
             crystals.push({
                 x: canvas.width + 50,
-                y: Math.random() > 0.5 ? canvas.height - 90 : 80,
-                r: 10
+                y: Math.random() > 0.5 ? canvas.height - 100 : 80,
+                r: 12
             });
-        } else if (rand < 0.8) { // Обычный блок
-            const h = 70 + Math.random() * 120;
+        } else { // Только обычные блоки
+            const h = 60 + Math.random() * 110;
             const isTop = Math.random() > 0.5;
             obstacles.push({
                 x: canvas.width + 50,
                 y: isTop ? 0 : canvas.height - h,
-                w: 40, h: h,
+                w: 45, h: h,
                 color: isTop ? '#ff00de' : '#ffd700'
             });
-        } else { // ИСПРАВЛЕННЫЕ НОЖНИЦЫ
-            const gapH = state.player.h * 1.6; // Проход в 1.6 раза больше кубика
-            const topH = Math.max(50, (canvas.height - gapH) * (0.3 + Math.random()*0.4));
-            const bottomY = topH + gapH;
-            const bottomH = canvas.height - bottomY;
-
-            obstacles.push(
-                { x: canvas.width + 50, y: 0, w: 40, h: topH, color: '#fff' },
-                { x: canvas.width + 50, y: bottomY, w: 40, h: bottomH, color: '#fff' }
-            );
         }
     }
 
     let spawnTimer = 0;
-    function updateScore(v) { state.score += v * state.combo; scoreEl.innerText = state.score; }
 
     function animate() {
         if(!state.active) return;
         
-        ctx.fillStyle = 'rgba(3, 3, 5, 0.25)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(3, 3, 5, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Плавное движение игрока
-        state.player.y += (state.player.targetY - state.player.y) * 0.25;
+        state.player.y += (state.player.targetY - state.player.y) * 0.22;
 
-        // Игрок
-        ctx.shadowBlur = 15 + (state.combo * 2); ctx.shadowColor = state.player.color;
+        // Отрисовка игрока
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = state.player.color;
         ctx.fillStyle = state.player.color;
-        ctx.beginPath(); ctx.roundRect(state.player.x, state.player.y, state.player.w, state.player.h, 8); ctx.fill();
+        ctx.beginPath();
+        ctx.roundRect(state.player.x, state.player.y, state.player.w, state.player.h, 10);
+        ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Объекты
         spawnTimer++;
-        if(spawnTimer > Math.max(25, 60 - state.speed)) { spawnEntity(); spawnTimer = 0; state.speed += 0.005; }
+        if(spawnTimer > Math.max(25, 55 - state.speed)) {
+            spawnEntity();
+            spawnTimer = 0;
+            state.speed += 0.005;
+            state.score += state.combo;
+            scoreEl.innerText = state.score;
+        }
 
         obstacles.forEach((obs, i) => {
-            obs.x -= state.speed; ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+            obs.x -= state.speed;
+            ctx.fillStyle = obs.color;
+            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+
             if (state.player.x < obs.x + obs.w && state.player.x + state.player.w > obs.x &&
-                state.player.y < obs.y + obs.h && state.player.y + state.player.h > obs.y) gameOver();
+                state.player.y < obs.y + obs.h && state.player.y + state.player.h > obs.y) {
+                gameOver();
+            }
             if(obs.x < -100) obstacles.splice(i, 1);
         });
 
         crystals.forEach((gem, i) => {
-            gem.x -= state.speed; ctx.fillStyle = '#ffd700'; ctx.shadowBlur = 10; ctx.shadowColor = '#ffd700';
-            ctx.beginPath(); ctx.arc(gem.x, gem.y, gem.r, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur = 0;
+            gem.x -= state.speed;
+            ctx.fillStyle = '#ffd700';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(gem.x, gem.y, gem.r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
 
-            if (Math.hypot(state.player.x + 17 - gem.x, state.player.y + 17 - gem.y) < 30) {
-                state.gems += 1; state.combo += 1; updateScore(1); gemsEl.innerText = state.gems;
-                crystals.splice(i, 1); showComboEffect();
+            if (Math.hypot(state.player.x + 17 - gem.x, state.player.y + 17 - gem.y) < 35) {
+                state.gems += 5;
+                state.combo += 1;
+                gemsEl.innerText = state.gems;
+                crystals.splice(i, 1);
+                showComboEffect();
             }
         });
 
@@ -211,16 +208,25 @@
 
     function showComboEffect() {
         document.getElementById('combo-val').innerText = state.combo;
-        comboUi.style.display = 'block'; comboUi.style.opacity = '1';
-        setTimeout(() => { comboUi.style.opacity = '0'; setTimeout(()=>comboUi.style.display='none',300); }, 700);
+        comboUi.style.display = 'block';
+        setTimeout(() => { if(state.active) comboUi.style.display = 'none'; }, 800);
     }
 
     function gameOver() {
         state.active = false;
         localStorage.setItem('glitch_gems', state.gems);
-        if(state.score > state.best) { state.best = state.score; localStorage.setItem('glitch_best_v2.6', state.best); }
+        if(state.score > state.best) {
+            state.best = state.score;
+            localStorage.setItem('glitch_best_rus', state.best);
+        }
         
-        set(ref(db, 'players/' + state.name), { score: state.score, gems: state.gems, best: state.best });
+        // Сохранение в Firebase под ником игрока
+        set(ref(db, 'leaderboard/' + state.name), {
+            score: state.score,
+            gems: state.gems,
+            best: state.best,
+            date: new Date().toLocaleDateString()
+        });
 
         document.getElementById('menu').style.display = 'flex';
         bestEl.innerText = state.best;
