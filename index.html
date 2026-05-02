@@ -2,128 +2,274 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RETSUO DASH INSANE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Troll Game TWA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-        canvas { display: block; filter: saturate(1.5) contrast(1.2); }
-        #ui { position: fixed; top: 30px; width: 100%; display: flex; justify-content: center; z-index: 10; pointer-events: none; }
-        .progress-bar { width: 60%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; overflow: hidden; }
-        #progress-fill { width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 10px #00f2ff; transition: width 0.1s; }
-        #menu { position: absolute; inset: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-family: 'Orbitron'; }
-        .play-btn { width: 100px; height: 100px; background: #00f2ff; border: none; border-radius: 20px; cursor: pointer; transform: rotate(45deg); box-shadow: 0 0 40px #00f2ff; }
-        .play-btn:active { transform: rotate(45deg) scale(0.9); }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            touch-action: none; /* Запрещаем скролл экрана при игре */
+        }
+        canvas {
+            background-color: #f0f0f0;
+            border: 2px solid #555;
+            border-radius: 10px;
+            max-width: 100%;
+        }
+        #ui { margin-bottom: 15px; font-size: 24px; font-weight: bold; }
+        
+        /* Кнопки управления для телефона */
+        #controls {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            width: 70px;
+            height: 70px;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .control-btn:active { background-color: #666; }
     </style>
 </head>
 <body>
 
-<div id="ui"><div class="progress-bar"><div id="progress-fill"></div></div></div>
-<div id="menu">
-    <h1 style="color:white; letter-spacing:10px; margin-bottom:60px;">RETSUO DASH</h1>
-    <button class="play-btn" onclick="start()"></button>
-</div>
-<canvas id="g"></canvas>
-
-<script>
-    const canvas = document.getElementById('g');
-    const ctx = canvas.getContext('2d');
-    const fill = document.getElementById('progress-fill');
+    <div id="ui">Уровень: <span id="level-display">1</span></div>
     
-    let active = false, frame = 0, score = 0;
-    let speed = 9.5, gravity = 0.9, groundY = 150;
+    <canvas id="gameCanvas" width="350" height="400"></canvas>
     
-    const player = { x: 150, y: 0, w: 45, h: 45, dy: 0, angle: 0, targetAngle: 0, onGround: false, trail: [] };
-    let obs = [], parts = [], decos = [];
+    <div id="controls">
+        <div class="control-btn" id="btnLeft">⬅️</div>
+        <div class="control-btn" id="btnJump">⬆️</div>
+        <div class="control-btn" id="btnRight">➡️</div>
+    </div>
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
-
-    function jump() {
-        if(player.onGround) {
-            player.dy = -15; player.onGround = false;
-            player.targetAngle += Math.PI/2;
-            createExplosion(player.x + 22, player.y + 45, '#00f2ff');
+    <script>
+        // Инициализация Telegram
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+            Telegram.WebApp.expand(); // Открываем на весь экран
         }
-    }
-    window.addEventListener('touchstart', (e) => { e.preventDefault(); if(active) jump(); });
 
-    function createExplosion(x, y, color) {
-        for(let i=0; i<15; i++) parts.push({ x, y, vx: (Math.random()-0.5)*12, vy: (Math.random()-0.5)*12, l: 1, c: color });
-    }
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('level-display');
 
-    function start() {
-        document.getElementById('menu').style.display = 'none';
-        active = true; score = 0; obs = []; player.y = canvas.height - groundY - 45; player.dy = 0;
-        loop();
-    }
+        // Состояние игры
+        let currentLevel = 0;
+        let gameOver = false;
 
-    function update() {
-        player.dy += gravity; player.y += player.dy;
-        const gLimit = canvas.height - groundY - player.h;
-        if(player.y >= gLimit) { player.y = gLimit; player.dy = 0; player.onGround = true; player.angle = player.targetAngle; }
-        else { player.angle += (player.targetAngle - player.angle) * 0.2; }
+        // Игрок (синий квадрат)
+        const player = { x: 20, y: 300, width: 20, height: 20, vx: 0, vy: 0, speed: 4, jumpPower: -9, grounded: false };
+        const gravity = 0.5;
+        
+        // Управление
+        const keys = { left: false, right: false, jump: false };
 
-        // Шлейф
-        player.trail.push({x: player.x, y: player.y, a: player.angle});
-        if(player.trail.length > 8) player.trail.shift();
+        // Настройка кнопок для телефона и ПК
+        const setupButton = (id, action) => {
+            const btn = document.getElementById(id);
+            // Для сенсорных экранов
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[action] = true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[action] = false; });
+            // Для мышки на ПК
+            btn.addEventListener('mousedown', () => keys[action] = true);
+            btn.addEventListener('mouseup', () => keys[action] = false);
+        };
 
-        // Препятствия
-        if(frame % 60 === 0) obs.push({ x: canvas.width, w: 40, h: 45 });
-        obs.forEach((o, i) => {
-            o.x -= speed;
-            if(player.x + 35 > o.x && player.x + 10 < o.x + o.w && player.y + 35 > canvas.height - groundY - o.h) reset();
-            if(o.x < -100) { obs.splice(i,1); score++; fill.style.width = (score * 2) + '%'; }
+        setupButton('btnLeft', 'left');
+        setupButton('btnRight', 'right');
+        setupButton('btnJump', 'jump');
+
+        // Управление с клавиатуры (если играют с компьютера)
+        window.addEventListener('keydown', e => {
+            if(e.code === 'ArrowLeft') keys.left = true;
+            if(e.code === 'ArrowRight') keys.right = true;
+            if(e.code === 'ArrowUp') keys.jump = true;
+        });
+        window.addEventListener('keyup', e => {
+            if(e.code === 'ArrowLeft') keys.left = false;
+            if(e.code === 'ArrowRight') keys.right = false;
+            if(e.code === 'ArrowUp') keys.jump = false;
         });
 
-        parts.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.l -= 0.03; if(p.l <= 0) parts.splice(i,1); });
-        frame++;
-    }
+        // ----------------------------------------------------
+        // БАЗА УРОВНЕЙ (Здесь ты можешь добавить свои 10 штук)
+        // ----------------------------------------------------
+        const levels = [
+            { // Уровень 1: Простой
+                start: { x: 20, y: 300 },
+                goal: { x: 300, y: 320, width: 30, height: 40 }, // Зеленая дверь
+                platforms: [
+                    { x: 0, y: 360, width: 350, height: 40, type: 'solid' } // Земля
+                ],
+                spikes: []
+            },
+            { // Уровень 2: Троллинг - проваливающийся пол
+                start: { x: 20, y: 300 },
+                goal: { x: 300, y: 320, width: 30, height: 40 },
+                platforms: [
+                    { x: 0, y: 360, width: 100, height: 40, type: 'solid' },
+                    { x: 100, y: 360, width: 100, height: 40, type: 'fake' }, // ФЕЙКОВЫЙ ПОЛ! Он пропадет
+                    { x: 200, y: 360, width: 150, height: 40, type: 'solid' }
+                ],
+                spikes: []
+            },
+            { // Уровень 3: Шипы
+                start: { x: 20, y: 150 },
+                goal: { x: 300, y: 70, width: 30, height: 40 },
+                platforms: [
+                    { x: 0, y: 200, width: 100, height: 20, type: 'solid' },
+                    { x: 150, y: 150, width: 50, height: 20, type: 'solid' }, // Островок
+                    { x: 250, y: 110, width: 100, height: 20, type: 'solid' }
+                ],
+                spikes: [
+                    { x: 0, y: 380, width: 350, height: 20 } // Шипы внизу (Красные)
+                ]
+            }
+        ];
 
-    function draw() {
-        // Фон с градиентом
-        let g = ctx.createLinearGradient(0,0,0,canvas.height);
-        g.addColorStop(0, '#0a001a'); g.addColorStop(1, '#001a1a');
-        ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width,canvas.height);
+        let activeLevel;
 
-        // Рисуем пол (как в GD)
-        ctx.fillStyle = '#000'; ctx.fillRect(0, canvas.height - groundY, canvas.width, groundY);
-        ctx.strokeStyle = '#00f2ff'; ctx.lineWidth = 4;
-        ctx.strokeRect(-10, canvas.height - groundY, canvas.width + 20, 2);
+        function loadLevel(index) {
+            if (index >= levels.length) {
+                alert("🎉 Поздравляю! Ты прошел игру!");
+                index = 0; // Начинаем заново
+            }
+            currentLevel = index;
+            levelDisplay.innerText = currentLevel + 1;
+            
+            // Глубокое копирование уровня, чтобы фейковые платформы восстанавливались
+            activeLevel = JSON.parse(JSON.stringify(levels[currentLevel])); 
+            
+            player.x = activeLevel.start.x;
+            player.y = activeLevel.start.y;
+            player.vx = 0;
+            player.vy = 0;
+            gameOver = false;
+        }
 
-        // Шлейф
-        player.trail.forEach((t, i) => {
-            ctx.globalAlpha = i / 10; ctx.fillStyle = '#00f2ff';
-            ctx.save(); ctx.translate(t.x + 22, t.y + 22); ctx.rotate(t.a);
-            ctx.fillRect(-22, -22, 45, 45); ctx.restore();
-        });
-        ctx.globalAlpha = 1;
+        function die() {
+            if (gameOver) return;
+            gameOver = true;
+            setTimeout(() => loadLevel(currentLevel), 300); // Рестарт через 0.3 сек
+        }
 
-        // Игрок
-        ctx.save(); ctx.translate(player.x + 22, player.y + 22); ctx.rotate(player.angle);
-        ctx.fillStyle = '#00f2ff'; ctx.shadowBlur = 20; ctx.shadowColor = '#00f2ff';
-        ctx.fillRect(-22, -22, 45, 45);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(-15, -15, 30, 30);
-        ctx.restore();
+        function update() {
+            if (gameOver) return;
 
-        // Шипы
-        obs.forEach(o => {
-            ctx.fillStyle = '#ff00de'; ctx.shadowBlur = 15; ctx.shadowColor = '#ff00de';
-            ctx.beginPath(); ctx.moveTo(o.x, canvas.height - groundY);
-            ctx.lineTo(o.x + 20, canvas.height - groundY - 45); ctx.lineTo(o.x + 40, canvas.height - groundY);
-            ctx.fill();
-        });
+            // Движение влево/вправо
+            if (keys.left) player.vx = -player.speed;
+            else if (keys.right) player.vx = player.speed;
+            else player.vx = 0;
 
-        parts.forEach(p => { ctx.globalAlpha = p.l; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, 4, 4); });
-        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-    }
+            // Прыжок
+            if (keys.jump && player.grounded) {
+                player.vy = player.jumpPower;
+                player.grounded = false;
+            }
 
-    function reset() {
-        active = false; createExplosion(player.x, player.y, '#ff00de');
-        setTimeout(() => document.getElementById('menu').style.display = 'flex', 1000);
-    }
+            // Гравитация
+            player.vy += gravity;
+            player.x += player.vx;
+            player.y += player.vy;
 
-    function loop() { if(active) { update(); draw(); requestAnimationFrame(loop); } }
-</script>
+            player.grounded = false;
+
+            // Ограничение по краям экрана (чтобы не уходил за стенки)
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            // Столкновения с платформами
+            activeLevel.platforms.forEach(p => {
+                if (!p.hidden && player.x < p.x + p.width && player.x + player.width > p.x &&
+                    player.y < p.y + p.height && player.y + player.height > p.y) {
+                    
+                    if (p.type === 'fake') {
+                        p.hidden = true; // Троллинг: пол пропадает!
+                    } else {
+                        // Столкновение сверху (приземление)
+                        if (player.vy > 0 && player.y + player.height - player.vy <= p.y + 10) {
+                            player.y = p.y - player.height;
+                            player.vy = 0;
+                            player.grounded = true;
+                        }
+                    }
+                }
+            });
+
+            // Столкновения с шипами
+            activeLevel.spikes.forEach(s => {
+                if (player.x < s.x + s.width && player.x + player.width > s.x &&
+                    player.y < s.y + s.height && player.y + player.height > s.y) {
+                    die();
+                }
+            });
+
+            // Падение в пропасть
+            if (player.y > canvas.height) {
+                die();
+            }
+
+            // Переход на следующий уровень (Зеленая зона)
+            const g = activeLevel.goal;
+            if (player.x < g.x + g.width && player.x + player.width > g.x &&
+                player.y < g.y + g.height && player.y + player.height > g.y) {
+                loadLevel(currentLevel + 1);
+            }
+        }
+
+        function draw() {
+            // Очищаем экран
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Рисуем платформы (Серые)
+            ctx.fillStyle = '#333';
+            activeLevel.platforms.forEach(p => {
+                if (!p.hidden) ctx.fillRect(p.x, p.y, p.width, p.height);
+            });
+
+            // Рисуем шипы (Красные)
+            ctx.fillStyle = 'red';
+            activeLevel.spikes.forEach(s => {
+                ctx.fillRect(s.x, s.y, s.width, s.height);
+            });
+
+            // Рисуем финиш (Зеленый)
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(activeLevel.goal.x, activeLevel.goal.y, activeLevel.goal.width, activeLevel.goal.height);
+
+            // Рисуем игрока (Синий)
+            ctx.fillStyle = '#2196F3';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Запускаем следующий кадр
+            requestAnimationFrame(() => {
+                update();
+                draw();
+            });
+        }
+
+        // Старт игры
+        loadLevel(0);
+        draw();
+    </script>
 </body>
 </html>
