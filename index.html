@@ -2,141 +2,388 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Brick Master ULTRA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Neon Brick Master</title>
     <style>
         :root {
-            --neon-primary: #00f2ff;
-            --neon-secondary: #ff00de;
-            --bg-color: #020202;
+            --neon-blue: #00f2ff;
+            --neon-pink: #ff00de;
+            --bg-dark: #050505;
         }
-        body {
-            background: var(--bg-color);
-            color: #fff;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            touch-action: none;
-            padding: 20px 0;
+
+        * {
             box-sizing: border-box;
+            -webkit-touch-callout: none; /* Запрет контекстного меню на iOS */
+            -webkit-user-select: none;   /* Запрет выделения текста */
+            user-select: none;
         }
-        #game-wrapper {
-            position: relative;
-            width: 320px;
+
+        body {
+            background: var(--bg-dark);
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
+            height: 100vh;
+            width: 100vw;
+            touch-action: none; /* Отключает стандартные жесты браузера */
         }
-        canvas {
-            background: #000;
-            border: 2px solid #1a1a1a;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+
+        /* Верхняя панель */
+        .header {
+            flex: 0 0 auto;
+            width: 100%;
+            padding: 10px 0;
+            text-align: center;
         }
-        .header-panel { width: 100%; margin-bottom: 10px; text-align: center; }
-        .league-badge {
-            font-size: 12px;
-            padding: 4px 12px;
+        .league-title {
+            border: 1px solid var(--neon-blue);
             border-radius: 20px;
-            border: 1px solid var(--neon-primary);
-            color: var(--neon-primary);
+            padding: 2px 15px;
+            font-size: 12px;
+            color: var(--neon-blue);
+            display: inline-block;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .stats-bar {
+        .score-container {
             display: flex;
             justify-content: space-around;
-            margin-top: 10px;
-            font-weight: bold;
-            font-size: 14px;
+            width: 100%;
+            max-width: 300px;
+            margin: 5px auto 0;
+            font-weight: 900;
+            font-size: 16px;
+            text-shadow: 0 0 10px var(--neon-blue);
         }
-        .stats-bar span { color: var(--neon-primary); }
 
-        #menu-overlay {
+        /* Контейнер игры (авто-масштабирование) */
+        #game-container {
+            flex: 1 1 auto;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 0; /* Важно для flex-контейнеров */
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            border: 3px solid var(--neon-blue);
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+            background: #000;
+            height: 90%; /* Поле занимает 90% доступной высоты между шапкой и кнопками */
+            aspect-ratio: 12 / 20; /* Сохраняем пропорции тетриса */
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 9px;
+        }
+
+        /* Меню Старт */
+        #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 100;
-            border-radius: 12px;
+            border-radius: 9px;
+            backdrop-filter: blur(4px);
         }
-        h1 { font-size: 32px; color: var(--neon-primary); text-shadow: 0 0 15px var(--neon-primary); margin: 0; }
-        
-        /* КНОПКА СТАРТ С ВЫСОКИМ ПРИОРИТЕТОМ */
         .start-btn {
-            margin-top: 20px;
-            padding: 15px 45px;
             background: linear-gradient(135deg, #ffd700, #ff8c00);
-            color: #000;
             border: none;
-            border-radius: 30px;
-            font-size: 20px;
-            font-weight: 900;
+            padding: 18px 45px;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
             cursor: pointer;
-            z-index: 101;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
         }
 
+        /* Кнопки управления */
         .controls {
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, auto);
+            gap: 12px;
             width: 100%;
-            max-width: 360px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 20px 30px 20px;
+            max-width: 320px;
+            padding: 15px 20px 30px 20px;
         }
+        
         .btn {
-            width: 70px;
-            height: 70px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            aspect-ratio: 1 / 1;
+            background: rgba(255,255,255,0.03);
+            border: 2px solid var(--neon-blue);
             border-radius: 50%;
-            color: #fff;
-            font-size: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            font-size: 28px;
+            color: var(--neon-blue);
+            cursor: pointer;
+            transition: transform 0.1s, background 0.1s;
         }
-        .btn.side { border-color: var(--neon-secondary); color: var(--neon-secondary); }
-        .btn.main { border-color: var(--neon-primary); color: var(--neon-primary); }
-        .btn:active { transform: scale(0.9); background: rgba(255,255,255,0.1); }
+        .btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 242, 255, 0.2);
+        }
+        .btn-rotate { border-color: var(--neon-pink); color: var(--neon-pink); grid-column: 2; }
+        .btn-down { grid-column: 2; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
     </style>
 </head>
 <body>
 
-<div id="game-wrapper">
-    <div class="header-panel">
-        <span class="league-badge" id="league">League: Bronze</span>
-        <div class="stats-bar">
-            <div>SCORE: <span id="score">0</span></div>
-            <div>BEST: <span id="best">0</span></div>
-        </div>
+<div class="header">
+    <div class="league-title" id="league">League: Bronze</div>
+    <div class="score-container">
+        <div>SCORE: <span id="score">0</span></div>
+        <div>BEST: <span id="best">0</span></div>
     </div>
+</div>
 
-    <div id="game-container" style="position: relative;">
-        <div id="menu-overlay">
-            <h1>NEON MASTER</h1>
-            <p id="final-msg" style="margin: 10px 0; color: #aaa;"></p>
+<div id="game-container">
+    <div class="canvas-wrapper">
+        <div id="overlay">
+            <h2 style="color:var(--neon-blue); margin: 0 0 20px 0; letter-spacing: 2px;">NEON MASTER</h2>
             <button class="start-btn" id="start-button">START</button>
         </div>
-        <canvas id="tetris" width="240" height="400"></canvas>
+        <canvas id="tetris"></canvas>
     </div>
 </div>
 
 <div class="controls">
-    <div class="btn side" id="left-btn">←</div>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-        <div class="btn main" id="rotate-btn">↻</div>
-        <div class="btn main" id="down-btn">↓</div>
-    </div>
-    <div class="btn side" id="right
+    <div class="btn btn-rotate" id="rotate-btn">↻</div>
+    
+    <div class="btn btn-left" id="left-btn">←</div>
+    <div class="btn btn-down" id="down-btn">↓</div>
+    <div class="btn btn-right" id="right-btn">→</div>
+</div>
+
+<script>
+    const canvas = document.getElementById('tetris');
+    const context = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const bestElement = document.getElementById('best');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-button');
+
+    // Настройка размеров холста
+    function resizeCanvas() {
+        // Логический размер сетки Тетриса
+        const cols = 12;
+        const rows = 20;
+        
+        // Устанавливаем внутреннее разрешение canvas
+        canvas.width = cols * 20;
+        canvas.height = rows * 20;
+        context.scale(20, 20);
+    }
+    resizeCanvas();
+
+    let gameRunning = false;
+    let score = 0;
+    let best = localStorage.getItem('neon_best_v5') || 0;
+    bestElement.innerText = best;
+
+    // СИСТЕМА ЗАПУСКА
+    function initStart(e) {
+        e.preventDefault();
+        if(!gameRunning) startGame();
+    }
+    startBtn.addEventListener('pointerdown', initStart);
+
+    function startGame() {
+        arena.forEach(row => row.fill(0));
+        score = 0;
+        scoreElement.innerText = 0;
+        overlay.style.display = 'none';
+        gameRunning = true;
+        playerReset();
+        lastTime = performance.now();
+        update();
+    }
+
+    // УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ
+    const bindBtn = (id, action) => {
+        const el = document.getElementById(id);
+        el.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            action();
+        });
+    };
+
+    bindBtn('left-btn', () => playerMove(-1));
+    bindBtn('right-btn', () => playerMove(1));
+    bindBtn('rotate-btn', () => playerRotate(1));
+    
+    const downBtn = document.getElementById('down-btn');
+    downBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); dropInterval = 50; });
+    downBtn.addEventListener('pointerup', (e) => { e.preventDefault(); dropInterval = 800; });
+    downBtn.addEventListener('pointerleave', () => { dropInterval = 800; });
+
+    // ЛОГИКА ТЕТРИСА
+    const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
+    const arena = Array.from({length: 20}, () => new Array(12).fill(0));
+    const player = { pos: {x: 0, y: 0}, matrix: null };
+
+    function createPiece(type) {
+        if (type === 'I') return [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]];
+        if (type === 'L') return [[0,2,0],[0,2,0],[0,2,2]];
+        if (type === 'J') return [[0,3,0],[0,3,0],[3,3,0]];
+        if (type === 'O') return [[4,4],[4,4]];
+        if (type === 'Z') return [[5,5,0],[0,5,5],[0,0,0]];
+        if (type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+        if (type === 'T') return [[0,0,0],[7,7,7],[0,7,0]];
+    }
+
+    function playerReset() {
+        const pieces = 'ILJOTSZ';
+        player.matrix = createPiece(pieces[pieces.length * Math.random() | 0]);
+        player.pos.y = 0;
+        player.pos.x = (arena[0].length / 2 | 0) - (player.matrix[0].length / 2 | 0);
+        
+        if (collide(arena, player)) {
+            gameRunning = false;
+            overlay.style.display = 'flex';
+            if (score > best) {
+                best = score;
+                localStorage.setItem('neon_best_v5', best);
+                bestElement.innerText = best;
+            }
+        }
+    }
+
+    function collide(arena, player) {
+        const [m, o] = [player.matrix, player.pos];
+        for (let y = 0; y < m.length; ++y) {
+            for (let x = 0; x < m[y].length; ++x) {
+                if (m[y][x] !== 0 && (arena[y + o.y] && arena[y + o.y][x + o.x]) !== 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function merge(arena, player) {
+        player.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) arena[y + player.pos.y][x + player.pos.x] = value;
+            });
+        });
+    }
+
+    function playerDrop() {
+        player.pos.y++;
+        if (collide(arena, player)) {
+            player.pos.y--;
+            merge(arena, player);
+            playerReset();
+            arenaSweep();
+        }
+        dropCounter = 0;
+    }
+
+    function arenaSweep() {
+        let rowCount = 1;
+        outer: for (let y = arena.length - 1; y > 0; --y) {
+            for (let x = 0; x < arena[y].length; ++x) {
+                if (arena[y][x] === 0) continue outer;
+            }
+            const row = arena.splice(y, 1)[0].fill(0);
+            arena.unshift(row);
+            ++y;
+            score += rowCount * 10;
+        }
+        scoreElement.innerText = score;
+    }
+
+    function rotate(matrix, dir) {
+        for (let y = 0; y < matrix.length; ++y) {
+            for (let x = 0; x < y; ++x) { [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]]; }
+        }
+        if (dir > 0) matrix.forEach(row => row.reverse()); else matrix.reverse();
+    }
+
+    function playerRotate(dir) {
+        const pos = player.pos.x;
+        let offset = 1;
+        rotate(player.matrix, dir);
+        while (collide(arena, player)) {
+            player.pos.x += offset;
+            offset = -(offset + (offset > 0 ? 1 : -1));
+            if (offset > player.matrix[0].length) {
+                rotate(player.matrix, -dir);
+                player.pos.x = pos;
+                return;
+            }
+        }
+    }
+
+    function playerMove(dir) {
+        player.pos.x += dir;
+        if (collide(arena, player)) player.pos.x -= dir;
+    }
+
+    let dropCounter = 0;
+    let dropInterval = 800;
+    let lastTime = 0;
+
+    function update(time = 0) {
+        if (!gameRunning) return;
+        const deltaTime = time - lastTime;
+        lastTime = time;
+        dropCounter += deltaTime;
+        if (dropCounter > dropInterval) playerDrop();
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function draw() {
+        context.fillStyle = '#000';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Сетка
+        context.strokeStyle = '#111';
+        context.lineWidth = 0.1;
+        for(let i = 0; i <= 20; i++) {
+            context.beginPath(); context.moveTo(0, i); context.lineTo(12, i); context.stroke();
+        }
+
+        drawMatrix(arena, {x: 0, y: 0});
+        drawMatrix(player.matrix, player.pos);
+    }
+
+    function drawMatrix(matrix, offset) {
+        matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    context.fillStyle = colors[value];
+                    context.shadowBlur = 4;
+                    context.shadowColor = colors[value];
+                    context.fillRect(x + offset.x, y + offset.y, 0.9, 0.9); // 0.9 создает микро-зазоры между блоками
+                    context.shadowBlur = 0;
+                }
+            });
+        });
+    }
+</script>
+</body>
+</html>
