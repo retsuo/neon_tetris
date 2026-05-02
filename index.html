@@ -3,148 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Neon Brick Master Ultimate</title>
+    <title>Neon Master Elite</title>
     <style>
-        :root { --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --bg: #0a0a0c; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: none; outline: none; }
-        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
+        :root { 
+            --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; 
+            --bg: #030305; --glass: rgba(255, 255, 255, 0.03);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { 
+            background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; 
+            margin: 0; display: flex; flex-direction: column; align-items: center; 
+            height: 100vh; overflow: hidden;
+            background-image: radial-gradient(circle at 50% -20%, #1a1a3a 0%, #030305 80%);
+        }
 
-        /* Шапка */
-        .header { width: 100%; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
-        .top-btn { border: 2px solid var(--neon); color: var(--neon); padding: 6px 15px; border-radius: 10px; font-size: 13px; font-weight: bold; background: rgba(0, 242, 255, 0.05); }
-        .score-display { text-align: right; line-height: 1.2; }
-        .score-val { font-size: 20px; font-weight: 900; color: #fff; display: block; }
+        /* Шапка с эффектом размытия */
+        .header { 
+            width: 100%; padding: 15px 25px; display: flex; justify-content: space-between; 
+            align-items: center; z-index: 10; backdrop-filter: blur(10px);
+        }
+        .rank-badge { 
+            background: var(--glass); border: 1px solid rgba(0, 242, 255, 0.3);
+            color: var(--neon); padding: 8px 16px; border-radius: 12px; 
+            font-size: 12px; font-weight: 800; letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+        }
 
-        /* Поле игры */
-        #game-container { position: relative; width: 280px; height: 480px; border: 3px solid #1a1a1f; border-radius: 15px; background: #000; box-shadow: 0 0 30px rgba(0,0,0,0.5); overflow: hidden; }
-        .grid-layer { position: absolute; inset: 0; z-index: 1; opacity: 0.1;
+        /* Игровое поле */
+        #game-box { 
+            position: relative; width: 300px; height: 500px; 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; 
+            background: var(--glass); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            overflow: hidden; backdrop-filter: blur(5px);
+        }
+        .grid-mesh { 
+            position: absolute; inset: 0; z-index: 1; opacity: 0.05;
             background-image: linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px);
-            background-size: 28px 24px;
+            background-size: 30px 25px;
         }
         canvas { display: block; position: relative; z-index: 2; width: 100%; height: 100%; }
 
-        /* ГЛАВНЫЙ ЭКРАН (СТИЛЬНЫЙ) */
-        .overlay { position: absolute; inset: 0; background: radial-gradient(circle at center, #1a1a2e 0%, #050505 100%); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .logo { font-size: 32px; font-weight: 900; color: var(--neon); text-shadow: 0 0 15px var(--neon); margin-bottom: 30px; letter-spacing: 2px; }
-        .input-group { width: 80%; margin-bottom: 20px; }
-        input { width: 100%; background: rgba(255,255,255,0.05); border: 2px solid #333; border-radius: 12px; color: #fff; padding: 15px; text-align: center; font-size: 16px; transition: 0.3s; }
-        input:focus { border-color: var(--neon); box-shadow: 0 0 10px rgba(0,242,255,0.2); }
-        .btn-play { background: var(--gold); border: none; padding: 18px 50px; border-radius: 15px; color: #000; font-weight: 900; font-size: 20px; cursor: pointer; box-shadow: 0 5px 20px rgba(255,215,0,0.4); transition: 0.2s; }
-        .btn-play:active { transform: scale(0.95); }
+        /* Главное меню - Прям как в крутых аппках */
+        .menu-overlay { 
+            position: absolute; inset: 0; background: rgba(3,3,5,0.95); 
+            z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .title-glow { 
+            font-size: 40px; font-weight: 900; background: linear-gradient(to bottom, #fff, var(--neon));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px rgba(0, 242, 255, 0.5)); margin-bottom: 40px;
+        }
+        .modern-input { 
+            width: 80%; background: #0f0f13; border: 1px solid #222; border-radius: 16px; 
+            color: #fff; padding: 18px; text-align: center; font-size: 16px; margin-bottom: 25px;
+        }
+        .btn-main { 
+            background: linear-gradient(135deg, var(--neon), #00a2ff); border: none; 
+            padding: 18px 60px; border-radius: 20px; color: #000; font-weight: 800; 
+            font-size: 18px; letter-spacing: 1px; box-shadow: 0 10px 25px rgba(0, 242, 255, 0.3);
+        }
 
-        /* Кнопки управления */
-        .controls { width: 100%; padding-bottom: 50px; margin-top: auto; display: flex; justify-content: center; }
-        .joy { display: grid; grid-template-columns: repeat(3, 80px); gap: 15px; }
-        .btn-joy { width: 80px; height: 80px; background: #1a1a1f; border: 2px solid #2d2d35; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #fff; box-shadow: 0 6px 0 #000; }
-        .btn-joy:active { transform: translateY(4px); box-shadow: 0 2px 0 #000; border-color: var(--neon); color: var(--neon); }
-        .btn-rot { grid-column: 2; border-color: var(--pink); color: var(--pink); margin-bottom: 5px; border-radius: 50%; }
-
-        /* Модалка рейтинга */
-        #top-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; }
-        .modal-card { width: 300px; background: #111; border: 2px solid var(--neon); border-radius: 20px; padding: 25px; }
-        .leader-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #222; font-size: 16px; }
+        /* Кнопки управления в стиле 'Cyberpunk' */
+        .control-panel { width: 100%; padding: 20px 0 60px; margin-top: auto; display: flex; justify-content: center; }
+        .d-pad { display: grid; grid-template-columns: repeat(3, 85px); gap: 15px; }
+        .c-btn { 
+            height: 85px; background: #0f0f13; border: 1px solid #1f1f25; border-radius: 24px;
+            display: flex; align-items: center; justify-content: center; font-size: 28px;
+            box-shadow: inset 0 2px 5px rgba(255,255,255,0.05), 0 10px 20px rgba(0,0,0,0.4);
+            color: #555; transition: 0.1s;
+        }
+        .c-btn:active { transform: scale(0.92); color: var(--neon); border-color: var(--neon); box-shadow: 0 0 20px rgba(0,242,255,0.2); }
+        .c-rot { grid-column: 2; color: var(--pink); border-color: rgba(255,0,222,0.2); border-radius: 50%; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <div class="top-btn" id="btn-rank">РЕЙТИНГ</div>
-    <div class="score-display">
-        <span style="font-size:10px; color:var(--neon)">SCORE</span>
-        <span class="score-val" id="ui-score">0</span>
+    <div class="rank-badge">ELITE LEAGUE</div>
+    <div style="text-align: right">
+        <div style="font-size: 10px; opacity: 0.5; letter-spacing: 2px">SCORE</div>
+        <div id="ui-score" style="font-size: 22px; font-weight: 900; color: #fff">0</div>
     </div>
 </div>
 
-<div id="game-container">
-    <div class="grid-layer"></div>
-    <div id="overlay" class="overlay">
-        <div class="logo">NEON<br>MASTER</div>
-        <div class="input-group" id="name-area">
-            <input type="text" id="nick-input" placeholder="Введите ваш ник" maxlength="10">
-        </div>
-        <button class="btn-play" id="start-btn">ИГРАТЬ</button>
-        <p style="margin-top:20px; color:#555; font-size:12px;">Best: <span id="ui-best">0</span></p>
+<div id="game-box">
+    <div class="grid-mesh"></div>
+    <div id="overlay" class="menu-overlay">
+        <div class="title-glow">NEON MASTER</div>
+        <input type="text" id="nick-input" class="modern-input" placeholder="USERNAME" maxlength="10">
+        <button class="btn-main" id="start-btn">START GAME</button>
+        <p id="best-score-text" style="margin-top: 30px; opacity: 0.4; font-size: 14px">BEST: 0</p>
     </div>
     <canvas id="game"></canvas>
 </div>
 
-<div id="top-modal">
-    <div class="modal-card">
-        <h2 style="color:var(--neon); text-align:center; margin:0 0 20px;">TOP 10</h2>
-        <div id="leader-list"></div>
-        <button class="btn-play" style="width:100%; margin-top:20px; padding:12px; font-size:16px;" id="close-rank">ЗАКРЫТЬ</button>
-    </div>
-</div>
-
-<div class="controls">
-    <div class="joy">
-        <div class="btn-joy btn-rot" id="m-rot">↻</div>
-        <div class="btn-joy" id="m-l" style="grid-row:2">←</div>
-        <div class="btn-joy" id="m-d" style="grid-row:2">↓</div>
-        <div class="btn-joy" id="m-r" style="grid-row:2">→</div>
+<div class="control-panel">
+    <div class="d-pad">
+        <div class="c-btn c-rot" id="m-rot">↻</div>
+        <div class="c-btn" id="m-l" style="grid-row:2">←</div>
+        <div class="c-btn" id="m-d" style="grid-row:2">↓</div>
+        <div class="c-btn" id="m-r" style="grid-row:2">→</div>
     </div>
 </div>
 
 <script type="module">
+    // Подключаем Firebase (конфиг как в User Summary)
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, set, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyAiEnX5enxq-1PX3smDt0pguY7AqFLUB4I",
-        databaseURL: "https://retsuo-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "retsuo"
+        databaseURL: "https://retsuo-default-rtdb.europe-west1.firebasedatabase.app"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    window.pushScore = (n, s) => { set(ref(db, 'leaderboard/' + n), { score: s }); };
-
-    onValue(query(ref(db, 'leaderboard'), orderByChild('score'), limitToLast(10)), (snap) => {
-        const list = document.getElementById('leader-list');
-        list.innerHTML = "";
-        let data = [];
-        snap.forEach(c => { data.push({n: c.key, s: c.val().score}); });
-        data.reverse().forEach((p, i) => {
-            list.innerHTML += `<div class="leader-item"><span>${i+1}. ${p.n}</span><span style="color:var(--gold)">${p.s}</span></div>`;
-        });
-    });
+    window.saveToFirebase = (name, score) => {
+        set(ref(db, 'leaderboard/' + name), { score: score });
+    };
 </script>
 
 <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
-    const ROWS = 20, COLS = 10; // Уменьшил количество колонок для красоты блоков
+    const ROWS = 20, COLS = 12;
     
-    // ФИКС РАЗМЕРОВ: Холст должен соответствовать CSS размерам
-    canvas.width = 280; 
-    canvas.height = 480;
+    // Подстройка под экран
+    canvas.width = 300; canvas.height = 500;
     const BW = canvas.width / COLS;
     const BH = canvas.height / ROWS;
 
     let arena = Array.from({length: ROWS}, () => Array(COLS).fill(0));
     const colors = [null, '#00f2ff', '#ff00de', '#00ff00', '#ffff00', '#ff0000', '#7a00ff', '#ff7a00'];
-    let score = 0, best = localStorage.getItem('neon_best') || 0, active = false, myName = localStorage.getItem('neon_nick') || "";
+    let score = 0, active = false, myName = localStorage.getItem('player_name') || "";
 
-    document.getElementById('ui-best').innerText = best;
-    if (myName) document.getElementById('name-area').style.display = 'none';
-
-    document.getElementById('btn-rank').onclick = () => document.getElementById('top-modal').style.display = 'flex';
-    document.getElementById('close-rank').onclick = () => document.getElementById('top-modal').style.display = 'none';
+    if(myName) document.getElementById('nick-input').style.display = 'none';
 
     document.getElementById('start-btn').onclick = () => {
-        if (!myName) {
-            const v = document.getElementById('nick-input').value.trim();
-            if (!v) return;
-            myName = v;
-            localStorage.setItem('neon_nick', myName);
-            document.getElementById('name-area').style.display = 'none';
+        if(!myName) {
+            const val = document.getElementById('nick-input').value.trim();
+            if(!val) return;
+            myName = val;
+            localStorage.setItem('player_name', myName);
         }
-        arena.forEach(r => r.fill(0));
-        score = 0; document.getElementById('ui-score').innerText = "0";
         document.getElementById('overlay').style.display = 'none';
+        arena.forEach(r => r.fill(0));
+        score = 0; updateScore(0);
         active = true; resetPiece(); update();
     };
+
+    function updateScore(v) {
+        score += v;
+        document.getElementById('ui-score').innerText = score;
+    }
 
     const piece = { pos: {x: 0, y: 0}, matrix: null };
 
@@ -174,9 +184,8 @@
         piece.pos = { x: Math.floor(COLS/2 - piece.matrix[0].length/2), y: 0 };
         if (collide(arena, piece)) {
             active = false;
-            if (score > best) { best = score; localStorage.setItem('neon_best', best); }
             document.getElementById('overlay').style.display = 'flex';
-            if (window.pushScore) window.pushScore(myName, score);
+            window.saveToFirebase(myName, score);
         }
     }
 
@@ -187,16 +196,12 @@
     }
 
     function sweep() {
-        let rowCount = 1;
         outer: for (let y = ROWS - 1; y >= 0; --y) {
             for (let x = 0; x < COLS; ++x) { if (arena[y][x] === 0) continue outer; }
             const row = arena.splice(y, 1)[0].fill(0);
             arena.unshift(row);
-            y++;
-            score += rowCount * 100;
-            rowCount *= 2;
+            updateScore(100);
         }
-        document.getElementById('ui-score').innerText = score;
     }
 
     let lastTime = 0, dropCounter = 0;
@@ -213,53 +218,42 @@
     }
 
     function draw() {
-        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width, canvas.height);
         
-        const drawCell = (x, y, colorIndex, isGhost) => {
-            const xPos = x * BW;
-            const yPos = y * BH;
-            ctx.fillStyle = colors[colorIndex];
-            if (!isGhost) {
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = colors[colorIndex];
-            }
-            // Рисуем скругленный блок
-            const r = 4;
-            ctx.beginPath();
-            ctx.roundRect(xPos + 2, yPos + 2, BW - 4, BH - 4, r);
-            ctx.fill();
-            ctx.shadowBlur = 0;
+        const drawRect = (x, y, color, isGhost) => {
+            ctx.fillStyle = color;
+            ctx.shadowBlur = isGhost ? 0 : 20;
+            ctx.shadowColor = color;
             
-            // Внутренний блик
-            ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.fillRect(xPos + 5, yPos + 5, BW/4, 2);
+            // Основной куб
+            ctx.beginPath();
+            ctx.roundRect(x * BW + 2, y * BH + 2, BW - 4, BH - 4, 6);
+            ctx.fill();
+            
+            // Блик сверху (для эффекта стекла)
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillRect(x * BW + 6, y * BH + 6, BW/3, 3);
+            ctx.shadowBlur = 0;
         };
 
-        arena.forEach((row, y) => row.forEach((v, x) => { if (v) drawCell(x, y, v, false); }));
-        piece.matrix.forEach((row, y) => row.forEach((v, x) => { if (v) drawCell(x + piece.pos.x, y + piece.pos.y, v, false); }));
+        arena.forEach((row, y) => row.forEach((v, x) => { if (v) drawRect(x, y, colors[v], false); }));
+        piece.matrix.forEach((row, y) => row.forEach((v, x) => { if (v) drawRect(x + piece.pos.x, y + piece.pos.y, colors[v], false); }));
     }
 
-    const control = (id, fn) => {
-        const el = document.getElementById(id);
-        let timer;
-        const start = (e) => { e.preventDefault(); fn(); clearInterval(timer); timer = setInterval(fn, 120); };
-        const stop = () => clearInterval(timer);
-        el.addEventListener('touchstart', start); el.addEventListener('touchend', stop);
-        el.addEventListener('mousedown', start); el.addEventListener('mouseup', stop);
-    };
-
-    control('m-l', () => { piece.pos.x--; if(collide(arena, piece)) piece.pos.x++; });
-    control('m-r', () => { piece.pos.x++; if(collide(arena, piece)) piece.pos.x--; });
-    control('m-d', () => { piece.pos.y++; if(collide(arena, piece)) { piece.pos.y--; merge(arena, piece); sweep(); resetPiece(); }});
-    document.getElementById('m-rot').onclick = () => {
+    // Управление
+    const move = (dir) => { piece.pos.x += dir; if(collide(arena, piece)) piece.pos.x -= dir; };
+    const rotate = () => {
         const m = piece.matrix;
         for (let y = 0; y < m.length; ++y) for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]];
         m.forEach(r => r.reverse());
-        if (collide(arena, piece)) { 
-            m.forEach(r => r.reverse()); 
-            for (let y = 0; y < m.length; ++y) for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; 
-        }
+        if (collide(arena, piece)) { m.forEach(r => r.reverse()); for (let y = 0; y < m.length; ++y) for (let x = 0; x < y; ++x) [m[x][y], m[y][x]] = [m[y][x], m[x][y]]; }
     };
+
+    document.getElementById('m-l').onclick = () => move(-1);
+    document.getElementById('m-r').onclick = () => move(1);
+    document.getElementById('m-d').onclick = () => { piece.pos.y++; if(collide(arena, piece)) { piece.pos.y--; merge(arena, piece); sweep(); resetPiece(); }};
+    document.getElementById('m-rot').onclick = rotate;
+
 </script>
 </body>
 </html>
