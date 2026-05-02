@@ -3,424 +3,407 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Troll Game: 10 Levels</title>
+    <title>Troll Level Telegram</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #121212;
+            --canvas-bg: #e0e0e0;
+            --ui-text: #ffffff;
+        }
         body {
             margin: 0;
-            overflow: hidden;
-            background-color: #111;
-            color: white;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--ui-text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
-            font-family: 'Courier New', Courier, monospace;
-            touch-action: none; /* Запрет скролла */
+            overflow: hidden;
+            touch-action: none;
         }
-        #game-container {
+        #game-wrapper {
             position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 12px;
+            overflow: hidden;
         }
         canvas {
-            background-color: #e0e0e0;
-            border: 4px solid #444;
-            border-radius: 8px;
+            background-color: var(--canvas-bg);
             display: block;
+            image-rendering: pixelated;
         }
-        #ui { margin-bottom: 10px; font-size: 20px; font-weight: bold; text-align: center; }
-        
-        /* Кнопки телефона */
-        #controls {
+        #header {
+            width: 100%;
+            max-width: 360px;
             display: flex;
-            gap: 15px;
-            margin-top: 15px;
-            width: 350px;
             justify-content: space-between;
+            padding: 10px;
+            box-sizing: border-box;
+            font-weight: bold;
+            text-transform: uppercase;
         }
-        .controls-left { display: flex; gap: 10px; }
-        .control-btn {
-            background-color: #333;
+        /* Управление */
+        #controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.2fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 360px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background: #333;
             color: white;
-            border: 2px solid #555;
-            border-radius: 12px;
-            width: 65px;
-            height: 65px;
-            font-size: 24px;
+            border: 2px solid #444;
+            border-radius: 15px;
+            height: 70px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 30px;
             user-select: none;
-            box-shadow: 0 4px #000;
+            -webkit-user-select: none;
+            cursor: pointer;
+            transition: transform 0.05s, background 0.1s;
+            box-shadow: 0 5px 0 #1a1a1a;
         }
-        .control-btn:active { background-color: #555; box-shadow: 0 0 #000; transform: translateY(4px); }
-        
-        /* Стартовый экран */
-        #start-screen {
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #1a1a1a;
+            background: #555;
+        }
+        .btn-jump { background: #2196F3; border-color: #1976D2; }
+
+        /* Экран старта */
+        #overlay {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.8);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10;
-            border-radius: 8px;
+            z-index: 100;
+            text-align: center;
         }
-        #start-btn {
-            padding: 15px 30px;
-            font-size: 20px;
-            background-color: #4CAF50;
+        #start-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
             font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
 
-    <div id="ui">УРОВЕНЬ: <span id="level-display">1</span> / 10 <br><span id="death-count" style="font-size: 14px; color: #ff5555;">Смертей: 0</span></div>
-    
-    <div id="game-container">
-        <canvas id="gameCanvas" width="350" height="450"></canvas>
-        <div id="start-screen">
-            <h1 style="color: red;">LEVEL TROLL</h1>
-            <button id="start-btn">ИГРАТЬ (Включить звук)</button>
+    <div id="header">
+        <div>Уровень: <span id="lvl">1</span></div>
+        <div style="color: #ff4444;">💀 <span id="deaths">0</span></div>
+    </div>
+
+    <div id="game-wrapper">
+        <canvas id="canvas"></canvas>
+        <div id="overlay">
+            <h1 style="color: #ff4444; margin-bottom: 10px;">LEVEL DEVIL</h1>
+            <p style="margin-bottom: 30px; font-size: 14px;">Будь готов к подставам...</p>
+            <button id="start-button">ИГРАТЬ</button>
         </div>
     </div>
-    
+
     <div id="controls">
-        <div class="controls-left">
-            <div class="control-btn" id="btnLeft">⬅️</div>
-            <div class="control-btn" id="btnRight">➡️</div>
-        </div>
-        <div class="control-btn" id="btnJump">⬆️</div>
+        <div class="btn" id="leftBtn">⬅️</div>
+        <div class="btn" id="rightBtn">➡️</div>
+        <div class="btn btn-jump" id="jumpBtn">ПРЫЖОК</div>
     </div>
 
-    <audio id="bgm" src="https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3?filename=8-bit-arcade-138828.mp3" loop></audio>
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-    <script>
-        if (window.Telegram && Telegram.WebApp) {
-            Telegram.WebApp.ready();
-            Telegram.WebApp.expand();
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const lvlNode = document.getElementById('lvl');
+    const deathNode = document.getElementById('deaths');
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-button');
+
+    // Настройка размеров под экран
+    const WIDTH = 360;
+    const HEIGHT = 420;
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+
+    // Звуковой движок (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSound(freq, type, duration) {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // Состояние игры
+    let state = {
+        level: 0,
+        deaths: 0,
+        running: false,
+        player: { x: 40, y: 300, w: 24, h: 24, vx: 0, vy: 0, grounded: false },
+        input: { left: false, right: false, jump: false },
+        activeLevel: null
+    };
+
+    // Объекты уровней
+    const levels = [
+        { // 1
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: []
+        },
+        { // 2: Фейковый пол
+            platforms: [{x:0, y:380, w:120, h:40, t:'s'}, {x:120, y:380, w:120, h:40, t:'f'}, {x:240, y:380, w:120, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: []
+        },
+        { // 3: Падающий шип
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: [{x:160, y:-40, w:40, h:40, trigger: 100, t:'fall'}]
+        },
+        { // 4: Невидимый блок
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: [{x:150, y:350, w:40, h:30, t:'s'}],
+            blocks: [{x:150, y:260, w:40, h:20, revealed: false}]
+        },
+        { // 5: Прыжок через пропасть (пол уезжает)
+            platforms: [{x:0, y:380, w:100, h:40, t:'s'}, {x:260, y:380, w:100, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: [{x:0, y:410, w:360, h:10, t:'s'}]
+        },
+        { // 6: Шипы снизу вылетают
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: [{x:220, y:380, w:30, h:60, trigger: 180, t:'rise'}]
+        },
+        { // 7: Убегающий выход
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}],
+            goal: {x:200, y:340, w:30, h:40, move: true},
+            spikes: [{x:330, y:340, w:30, h:40, t:'s'}]
+        },
+        { // 8: Потолок опускается
+            platforms: [{x:0, y:380, w:360, h:40, t:'s'}, {x:0, y:0, w:360, h:20, t:'moveY', vy: 0.5}],
+            goal: {x:310, y:340, w:30, h:40},
+            spikes: []
+        },
+        { // 9: Платформа-лифт, которая падает
+            platforms: [{x:0, y:300, w:80, h:20, t:'s'}, {x:140, y:300, w:80, h:20, t:'fall'}, {x:280, y:200, w:80, h:20, t:'s'}],
+            goal: {x:300, y:160, w:30, h:40},
+            spikes: [{x:0, y:410, w:360, h:10, t:'s'}]
+        },
+        { // 10: Финальный хаос
+            platforms: [{x:0, y:380, w:100, h:40, t:'s'}, {x:150, y:280, w:60, h:20, t:'f'}, {x:260, y:180, w:100, h:40, t:'s'}],
+            goal: {x:310, y:140, w:30, h:40},
+            spikes: [{x:0, y:410, w:360, h:10, t:'s'}, {x:280, y:-100, w:40, h:40, trigger: 240, t:'fall'}]
+        }
+    ];
+
+    function initLevel(n) {
+        if (n >= levels.length) {
+            alert("ТЫ ВЫИГРАЛ!");
+            state.level = 0; n = 0; state.deaths = 0;
+        }
+        state.activeLevel = JSON.parse(JSON.stringify(levels[n]));
+        state.player.x = 40;
+        state.player.y = 300;
+        state.player.vx = 0;
+        state.player.vy = 0;
+        lvlNode.innerText = n + 1;
+        deathNode.innerText = state.deaths;
+    }
+
+    // Управление (Мышь/Тач/Клавиатура)
+    function handleInput(type, act) {
+        const active = type === 'start';
+        if (act === 'l') state.input.left = active;
+        if (act === 'r') state.input.right = active;
+        if (act === 'j') state.input.jump = active;
+    }
+
+    const bindBtn = (id, act) => {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); handleInput('start', act); });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); handleInput('end', act); });
+        el.addEventListener('mousedown', () => handleInput('start', act));
+        el.addEventListener('mouseup', () => handleInput('end', act));
+    };
+    bindBtn('leftBtn', 'l'); bindBtn('rightBtn', 'r'); bindBtn('jumpBtn', 'j');
+
+    window.addEventListener('keydown', e => {
+        if(e.code === 'ArrowLeft' || e.code === 'KeyA') state.input.left = true;
+        if(e.code === 'ArrowRight' || e.code === 'KeyD') state.input.right = true;
+        if(e.code === 'Space' || e.code === 'ArrowUp') state.input.jump = true;
+    });
+    window.addEventListener('keyup', e => {
+        if(e.code === 'ArrowLeft' || e.code === 'KeyA') state.input.left = false;
+        if(e.code === 'ArrowRight' || e.code === 'KeyD') state.input.right = false;
+        if(e.code === 'Space' || e.code === 'ArrowUp') state.input.jump = false;
+    });
+
+    function die() {
+        playSound(150, 'sawtooth', 0.2);
+        state.deaths++;
+        initLevel(state.level);
+    }
+
+    function update() {
+        if (!state.running) return;
+        const p = state.player;
+        
+        // Горизонтальное движение
+        if (state.input.left) p.vx = -4;
+        else if (state.input.right) p.vx = 4;
+        else p.vx = 0;
+
+        // Прыжок
+        if (state.input.jump && p.grounded) {
+            p.vy = -9;
+            p.grounded = false;
+            playSound(440, 'square', 0.1);
         }
 
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const levelDisplay = document.getElementById('level-display');
-        const deathDisplay = document.getElementById('death-count');
-        const bgm = document.getElementById('bgm');
+        p.vy += 0.5; // Гравитация
+        p.x += p.vx;
+        p.y += p.vy;
 
-        let currentLevel = 0;
-        let deaths = 0;
-        let gameOver = false;
-        let gameStarted = false;
+        p.grounded = false;
 
-        // Физика игрока
-        const player = { x: 20, y: 350, width: 20, height: 20, vx: 0, vy: 0, speed: 3.5, jumpPower: -8.5, grounded: false };
-        const gravity = 0.45;
-        const keys = { left: false, right: false, jump: false };
-
-        // Управление
-        const setupButton = (id, action) => {
-            const btn = document.getElementById(id);
-            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[action] = true; });
-            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[action] = false; });
-            btn.addEventListener('mousedown', () => keys[action] = true);
-            btn.addEventListener('mouseup', () => keys[action] = false);
-            btn.addEventListener('mouseleave', () => keys[action] = false);
-        };
-        setupButton('btnLeft', 'left');
-        setupButton('btnRight', 'right');
-        setupButton('btnJump', 'jump');
-
-        window.addEventListener('keydown', e => {
-            if(e.code === 'ArrowLeft') keys.left = true;
-            if(e.code === 'ArrowRight') keys.right = true;
-            if(e.code === 'ArrowUp') keys.jump = true;
-        });
-        window.addEventListener('keyup', e => {
-            if(e.code === 'ArrowLeft') keys.left = false;
-            if(e.code === 'ArrowRight') keys.right = false;
-            if(e.code === 'ArrowUp') keys.jump = false;
-        });
-
-        // ---------------------------------------------------
-        // 10 УРОВНЕЙ: БАЗА ТРОЛЛИНГА
-        // ---------------------------------------------------
-        const levels = [
-            // Ур 1: Простое обучение
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [{ x: 0, y: 400, w: 350, h: 50, type: 'solid' }],
-                spikes: [], blocks: []
-            },
-            // Ур 2: Проваливающийся пол
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [
-                    { x: 0, y: 400, w: 100, h: 50, type: 'solid' },
-                    { x: 100, y: 400, w: 100, h: 50, type: 'fake' }, // Пропадает
-                    { x: 200, y: 400, w: 150, h: 50, type: 'solid' }
-                ],
-                spikes: [], blocks: []
-            },
-            // Ур 3: Падающий потолок-шип
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [{ x: 0, y: 400, w: 350, h: 50, type: 'solid' }],
-                spikes: [
-                    { x: 150, y: -50, w: 50, h: 50, type: 'fall', triggerX: 100, vy: 0 } // Падает, когда игрок на x=100
-                ], blocks: []
-            },
-            // Ур 4: Невидимый блок мешает прыжку
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [{ x: 0, y: 400, w: 350, h: 50, type: 'solid' }],
-                spikes: [{ x: 150, y: 380, w: 50, h: 20, type: 'normal' }], // Шип, надо прыгать
-                blocks: [{ x: 150, y: 300, w: 50, h: 80, type: 'invisible' }] // Невидимая стена над шипом!
-            },
-            // Ур 5: Убегающий финиш
-            {
-                start: { x: 20, y: 350 }, goal: { x: 150, y: 360, w: 30, h: 40, run: true },
-                platforms: [{ x: 0, y: 400, w: 350, h: 50, type: 'solid' }],
-                spikes: [{ x: 320, y: 380, w: 30, h: 20, type: 'normal' }], // В конце шипы
-                blocks: []
-            },
-            // Ур 6: Прыжки веры (все платформы обманки, кроме мелких)
-            {
-                start: { x: 20, y: 100 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [
-                    { x: 0, y: 150, w: 50, h: 20, type: 'solid' },
-                    { x: 100, y: 200, w: 50, h: 20, type: 'fake' },
-                    { x: 100, y: 250, w: 30, h: 20, type: 'solid' }, // Настоящая под фейком
-                    { x: 200, y: 300, w: 50, h: 20, type: 'fake' },
-                    { x: 280, y: 400, w: 70, h: 50, type: 'solid' }
-                ],
-                spikes: [{ x: 0, y: 430, w: 350, h: 20, type: 'normal' }], // Смерть внизу
-                blocks: []
-            },
-            // Ур 7: Фейковый финиш (Убьет)
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 80, w: 30, h: 40 }, // Настоящий финиш наверху
-                platforms: [
-                    { x: 0, y: 400, w: 350, h: 50, type: 'solid' },
-                    { x: 250, y: 200, w: 100, h: 20, type: 'solid' } // Платформа к финишу
-                ],
-                spikes: [{ x: 300, y: 360, w: 30, h: 40, type: 'normal', fakeGoal: true }], // Выглядит как финиш, но убивает!
-                blocks: [{ x: 100, y: 320, w: 50, h: 10, type: 'invisible_solid' }, { x: 180, y: 260, w: 50, h: 10, type: 'invisible_solid' }] // Ступени в небе
-            },
-            // Ур 8: Пол-предатель (опускается при касании)
-            {
-                start: { x: 20, y: 200 }, goal: { x: 300, y: 160, w: 30, h: 40 },
-                platforms: [
-                    { x: 0, y: 250, w: 80, h: 20, type: 'solid' },
-                    { x: 120, y: 250, w: 80, h: 20, type: 'sink' }, // Опускается вниз
-                    { x: 250, y: 200, w: 100, h: 20, type: 'solid' }
-                ],
-                spikes: [{ x: 0, y: 430, w: 350, h: 20, type: 'normal' }],
-                blocks: []
-            },
-            // Ур 9: Шипы вылетают из земли
-            {
-                start: { x: 20, y: 350 }, goal: { x: 300, y: 360, w: 30, h: 40 },
-                platforms: [{ x: 0, y: 400, w: 350, h: 50, type: 'solid' }],
-                spikes: [
-                    { x: 150, y: 400, w: 30, h: 30, type: 'rise', triggerX: 100, vy: 0 } // Выстреливает вверх
-                ], blocks: []
-            },
-            // Ур 10: Полный хаос
-            {
-                start: { x: 10, y: 350 }, goal: { x: 310, y: 160, w: 30, h: 40 },
-                platforms: [
-                    { x: 0, y: 400, w: 50, h: 50, type: 'solid' },
-                    { x: 50, y: 400, w: 200, h: 50, type: 'fake' }, // Мост-обманка
-                    { x: 280, y: 200, w: 70, h: 20, type: 'solid' } // Платформа финиша
-                ],
-                spikes: [
-                    { x: 0, y: 440, w: 350, h: 10, type: 'normal' },
-                    { x: 200, y: -50, w: 50, h: 50, type: 'fall', triggerX: 150, vy: 0 }
-                ],
-                blocks: [
-                    { x: 80, y: 330, w: 40, h: 10, type: 'invisible_solid' },
-                    { x: 160, y: 260, w: 40, h: 10, type: 'invisible_solid' }
-                ]
-            }
-        ];
-
-        let activeLevel;
-
-        function loadLevel(index) {
-            if (index >= levels.length) {
-                alert("🏆 ТЫ ПРОШЕЛ ЭТОТ АД! Поздравляю! Смертей: " + deaths);
-                index = 0;
-                deaths = 0;
-            }
-            currentLevel = index;
-            levelDisplay.innerText = currentLevel + 1;
-            deathDisplay.innerText = "Смертей: " + deaths;
+        // Коллизии с платформами
+        state.activeLevel.platforms.forEach(pl => {
+            if (pl.hidden) return;
+            if (pl.t === 'moveY') pl.y += pl.vy;
             
-            // Глубокое копирование
-            activeLevel = JSON.parse(JSON.stringify(levels[currentLevel])); 
-            
-            player.x = activeLevel.start.x;
-            player.y = activeLevel.start.y;
-            player.vx = 0;
-            player.vy = 0;
-            gameOver = false;
-        }
-
-        function die() {
-            if (gameOver) return;
-            gameOver = true;
-            deaths++;
-            deathDisplay.innerText = "Смертей: " + deaths;
-            setTimeout(() => loadLevel(currentLevel), 250);
-        }
-
-        // Проверка столкновений (AABB)
-        function rectIntersect(r1, r2) {
-            return !(r2.x > r1.x + r1.width || r2.x + r2.w < r1.x || r2.y > r1.y + r1.height || r2.y + r2.h < r1.y);
-        }
-
-        function update() {
-            if (gameOver || !gameStarted) return;
-
-            // Движение
-            if (keys.left) player.vx = -player.speed;
-            else if (keys.right) player.vx = player.speed;
-            else player.vx = 0;
-
-            if (keys.jump && player.grounded) {
-                player.vy = player.jumpPower;
-                player.grounded = false;
-            }
-
-            player.vy += gravity;
-            
-            // Сохраняем старую позицию для разрешения коллизий
-            let oldY = player.y;
-            player.x += player.vx;
-            player.y += player.vy;
-            player.grounded = false;
-
-            // Границы экрана
-            if (player.x < 0) player.x = 0;
-            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-            if (player.y > canvas.height + 50) die();
-
-            // Обработка платформ
-            activeLevel.platforms.forEach(p => {
-                if (p.hidden) return;
+            if (p.x < pl.x + pl.w && p.x + p.w > pl.x && p.y < pl.y + pl.h && p.y + p.h > pl.y) {
+                if (pl.t === 'f') { pl.hidden = true; return; }
+                if (pl.t === 'fall' && p.vy > 0) pl.falling = true;
                 
-                // Физика опускающегося пола
-                if (p.type === 'sink' && p.sinking) p.y += 2;
-
-                if (rectIntersect(player, p)) {
-                    if (p.type === 'fake') {
-                        p.hidden = true; // Троллинг!
-                    } else {
-                        // Разрешение коллизии (только сверху для простоты платформера)
-                        if (player.vy > 0 && oldY + player.height <= p.y + 10) {
-                            player.y = p.y - player.height;
-                            player.vy = 0;
-                            player.grounded = true;
-                            if (p.type === 'sink') p.sinking = true;
-                        }
-                    }
+                // Приземление
+                if (p.vy > 0 && p.y + p.h - p.vy <= pl.y + 10) {
+                    p.y = pl.y - p.h;
+                    p.vy = 0;
+                    p.grounded = true;
                 }
-            });
-
-            // Обработка невидимых блоков
-            activeLevel.blocks.forEach(b => {
-                if (rectIntersect(player, b)) {
-                    if (b.type === 'invisible') {
-                        b.revealed = true; // Показываем блок
-                        // Отталкиваем вниз (ударился головой)
-                        if (player.vy < 0) { player.y = b.y + b.h; player.vy = 0; }
-                    } else if (b.type === 'invisible_solid') {
-                        b.revealed = true;
-                        if (player.vy > 0 && oldY + player.height <= b.y + 10) {
-                            player.y = b.y - player.height;
-                            player.vy = 0;
-                            player.grounded = true;
-                        }
-                    }
-                }
-            });
-
-            // Обработка шипов-ловушек
-            activeLevel.spikes.forEach(s => {
-                if (s.type === 'fall') {
-                    if (player.x > s.triggerX) s.vy += 0.2; // Падает!
-                    s.y += s.vy;
-                }
-                if (s.type === 'rise') {
-                    if (player.x > s.triggerX) s.vy -= 0.5; // Выстреливает!
-                    s.y += s.vy;
-                }
-                
-                if (rectIntersect(player, s)) die();
-            });
-
-            // Убегающий финиш (Ур 5)
-            const g = activeLevel.goal;
-            if (g.run && player.x > g.x - 70) {
-                g.x += 3.5; // Убегает от игрока
             }
+            if (pl.falling) pl.y += 5;
+        });
 
-            // Касание финиша
-            if (rectIntersect(player, { x: g.x, y: g.y, w: g.w, h: g.h })) {
-                loadLevel(currentLevel + 1);
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (!gameStarted) return;
-
-            // Платформы (Серые)
-            ctx.fillStyle = '#666';
-            activeLevel.platforms.forEach(p => {
-                if (!p.hidden) ctx.fillRect(p.x, p.y, p.w, p.h);
-            });
-
-            // Блоки
-            activeLevel.blocks.forEach(b => {
-                if (b.revealed) {
-                    ctx.fillStyle = b.type === 'invisible' ? '#8B4513' : '#666'; // Коричневая кирпичная стена или серая платформа
-                    ctx.fillRect(b.x, b.y, b.w, b.h);
+        // Невидимые блоки
+        if (state.activeLevel.blocks) {
+            state.activeLevel.blocks.forEach(b => {
+                if (p.x < b.x + b.w && p.x + p.w > b.x && p.y < b.y + b.h && p.y + b.h > b.y) {
+                    b.revealed = true;
+                    if (p.vy < 0) { p.y = b.y + b.h; p.vy = 0; }
                 }
-            });
-
-            // Финиш (Зеленая дверь)
-            ctx.fillStyle = '#4CAF50';
-            ctx.fillRect(activeLevel.goal.x, activeLevel.goal.y, activeLevel.goal.w, activeLevel.goal.h);
-
-            // Шипы (Красные) + Фейковый финиш
-            activeLevel.spikes.forEach(s => {
-                ctx.fillStyle = s.fakeGoal ? '#4CAF50' : '#ff3333';
-                ctx.fillRect(s.x, s.y, s.w, s.h);
-            });
-
-            // Игрок (Синий квадрат)
-            ctx.fillStyle = '#2196F3';
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // Глаза игроку для красоты
-            ctx.fillStyle = 'white';
-            ctx.fillRect(player.x + 12, player.y + 4, 4, 4);
-            ctx.fillRect(player.x + 4, player.y + 4, 4, 4);
-
-            requestAnimationFrame(() => {
-                update();
-                draw();
             });
         }
 
-        // Кнопка Старт (решает проблему браузеров с автовоспроизведением звука)
-        document.getElementById('start-btn').addEventListener('click', () => {
-            document
+        // Ловушки
+        state.activeLevel.spikes.forEach(s => {
+            if (s.t === 'fall' && p.x > s.trigger) s.y += 8;
+            if (s.t === 'rise' && p.x > s.trigger) s.y -= 4;
+            if (p.x < s.x + s.w && p.x + p.w > s.x && p.y < s.y + s.h && p.y + p.h > s.y) die();
+        });
+
+        // Финиш
+        const g = state.activeLevel.goal;
+        if (g.move && p.x > g.x - 50) g.x += 4;
+        if (p.x < g.x + g.w && p.x + p.w > g.x && p.y < g.y + g.h && p.y + p.h > g.y) {
+            playSound(600, 'sine', 0.2);
+            state.level++;
+            initLevel(state.level);
+        }
+
+        if (p.y > HEIGHT) die();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, WIDTH, HEIGHT);
+        
+        // Сетка для стиля
+        ctx.strokeStyle = '#d0d0d0';
+        ctx.lineWidth = 1;
+        for(let i=0; i<WIDTH; i+=40) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,HEIGHT); ctx.stroke(); }
+        for(let i=0; i<HEIGHT; i+=40) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(WIDTH,i); ctx.stroke(); }
+
+        const l = state.activeLevel;
+        if (!l) return;
+
+        // Рисуем платформы
+        ctx.fillStyle = '#444';
+        l.platforms.forEach(pl => { if(!pl.hidden) ctx.fillRect(pl.x, pl.y, pl.w, pl.h); });
+
+        // Блоки
+        if(l.blocks) l.blocks.forEach(b => {
+            if(b.revealed) { ctx.fillStyle = '#888'; ctx.fillRect(b.x, b.y, b.w, b.h); }
+        });
+
+        // Финиш
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillRect(l.goal.x, l.goal.y, l.goal.w, l.goal.h);
+
+        // Шипы
+        ctx.fillStyle = '#ff3333';
+        l.spikes.forEach(s => ctx.fillRect(s.x, s.y, s.w, s.h));
+
+        // Игрок
+        ctx.fillStyle = '#2196F3';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(33, 150, 243, 0.5)';
+        ctx.fillRect(state.player.x, state.player.y, state.player.w, state.player.h);
+        ctx.shadowBlur = 0;
+
+        requestAnimationFrame(() => {
+            update();
+            draw();
+        });
+    }
+
+    startBtn.addEventListener('click', () => {
+        audioCtx.resume();
+        overlay.style.display = 'none';
+        state.running = true;
+        initLevel(0);
+        draw();
+    });
+
+    // Исправление для iOS/Telegram (клики)
+    startBtn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        startBtn.click();
+    });
+
+</script>
+</body>
+</html>
