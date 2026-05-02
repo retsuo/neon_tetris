@@ -3,183 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RETSUO DASH PRO</title>
+    <title>RETSUO DASH ULTIMATE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui { position: fixed; top: 20px; left: 0; width: 100%; display: flex; justify-content: space-around; color: #00f2ff; font-weight: bold; font-size: 20px; text-shadow: 0 0 10px #00f2ff; z-index: 10; pointer-events: none; }
+        :root { --neon: #00f2ff; --pink: #ff00de; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Orbitron', sans-serif; }
+        canvas { display: block; filter: contrast(1.2) brightness(1.1); }
+        #ui { position: fixed; top: env(safe-area-inset-top, 20px); left: 0; width: 100%; display: flex; justify-content: space-between; padding: 0 30px; box-sizing: border-box; color: #fff; z-index: 10; pointer-events: none; }
+        .stat { text-shadow: 0 0 15px var(--neon); font-size: 18px; }
+        #menu { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(5px); }
+        .play-btn { background: var(--neon); border: none; width: 80px; height: 80px; border-radius: 50%; cursor: pointer; box-shadow: 0 0 30px var(--neon); display: flex; align-items: center; justify-content: center; }
+        .play-btn svg { fill: #000; width: 40px; height: 40px; margin-left: 5px; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div>BEST: <span id="best">0</span></div>
-    <div>SCORE: <span id="score">0</span></div>
+    <div class="stat">BEST: <span id="best">0</span></div>
+    <div class="stat" style="color:var(--pink)">SCORE: <span id="score">0</span></div>
 </div>
-<canvas id="game"></canvas>
 
-<script>
-    const canvas = document.getElementById('game');
+<div id="menu">
+    <h1 style="color:white; margin-bottom:40px; font-size:40px; letter-spacing:5px;">RETSUO DASH</h1>
+    <button class="play-btn" onclick="initGame()">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+</div>
+
+<canvas id="screen"></canvas>
+
+<script type="module">
+    // Подключение Firebase для рекордов
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = { databaseURL: "https://retsuo-default-rtdb.europe-west1.firebasedatabase.app" };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const canvas = document.getElementById('screen');
     const ctx = canvas.getContext('2d');
     const scoreEl = document.getElementById('score');
     const bestEl = document.getElementById('best');
+    const menu = document.getElementById('menu');
 
-    let score = 0;
-    let best = localStorage.getItem('dash_pro_best') || 0;
-    bestEl.innerText = best;
-
-    // Настройки
-    const settings = {
-        gravity: 0.8,
-        jumpPower: -13,
+    let state = {
+        active: false,
+        score: 0,
+        best: localStorage.getItem('rd_ultimate_best') || 0,
         speed: 9,
-        groundY: 100
+        gravity: 0.85,
+        groundY: 130,
+        shake: 0,
+        bgColor: 200
     };
 
+    bestEl.innerText = state.best;
+
     const player = {
-        x: 100, y: 0, w: 40, h: 40,
-        dy: 0, angle: 0, onGround: false
+        x: 120, y: 0, w: 42, h: 42,
+        dy: 0, angle: 0, onGround: false,
+        targetAngle: 0
     };
 
     let obstacles = [];
     let particles = [];
-    let bgOffset = 0;
+    let frame = 0;
 
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        player.y = canvas.height - settings.groundY - player.h;
     }
     window.addEventListener('resize', resize);
     resize();
 
-    // Прыжок
-    window.addEventListener('touchstart', () => {
+    // Прыжок (как в GD — фиксированная высота)
+    function jump() {
         if(player.onGround) {
-            player.dy = settings.jumpPower;
+            player.dy = -14.5;
             player.onGround = false;
+            player.targetAngle += Math.PI / 2;
+            spawnEmitter(player.x + 20, player.y + 40, '#fff', 10);
         }
-    });
-
-    function createParticle(x, y) {
-        particles.push({ x, y, size: Math.random() * 5, life: 1, dx: -2, dy: Math.random() * 2 - 1 });
     }
 
-    function update() {
-        // Фоновая сетка (Параллакс)
-        bgOffset = (bgOffset - settings.speed * 0.3) % 100;
+    window.addEventListener('touchstart', (e) => {
+        if(!state.active) return;
+        e.preventDefault();
+        jump();
+    });
 
-        // Физика
-        player.dy += settings.gravity;
+    function spawnEmitter(x, y, color, count) {
+        for(let i=0; i<count; i++) {
+            particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                life: 1,
+                color: color,
+                size: Math.random() * 4 + 2
+            });
+        }
+    }
+
+    window.initGame = () => {
+        menu.style.display = 'none';
+        state.active = true;
+        state.score = 0;
+        state.speed = 9;
+        obstacles = [];
+        particles = [];
+        player.y = canvas.height - state.groundY - player.h;
+        player.dy = 0;
+        player.angle = 0;
+        player.targetAngle = 0;
+        loop();
+    };
+
+    function update() {
+        if(state.shake > 0) state.shake *= 0.9;
+        state.bgColor = (state.bgColor + 0.1) % 360;
+
+        // Физика игрока
+        player.dy += state.gravity;
         player.y += player.dy;
 
-        const groundLevel = canvas.height - settings.groundY - player.h;
-        if (player.y >= groundLevel) {
-            player.y = groundLevel;
+        const ground = canvas.height - state.groundY - player.h;
+        if(player.y >= ground) {
+            player.y = ground;
             player.dy = 0;
             player.onGround = true;
-            // Сглаживание угла при приземлении
-            player.angle = Math.round(player.angle / (Math.PI/2)) * (Math.PI/2);
+            player.angle = player.targetAngle; // Доворот грани
         } else {
-            player.angle += 0.15; // Вращение в воздухе
+            player.angle += (player.targetAngle - player.angle) * 0.15;
         }
 
-        // Спавн препятствий
-        if (Math.random() < 0.02) {
-            if (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 400) {
-                obstacles.push({ x: canvas.width, w: 40, h: 40 });
+        // Пыль при беге
+        if(player.onGround && frame % 3 === 0) {
+            particles.push({
+                x: player.x, y: player.y + player.h,
+                vx: -2 - Math.random() * 2, vy: -Math.random() * 2,
+                life: 0.6, color: 'rgba(255,255,255,0.3)', size: 3
+            });
+        }
+
+        // Препятствия (шипы и блоки)
+        if(frame % 70 === 0) {
+            obstacles.push({ x: canvas.width, type: Math.random() > 0.3 ? 'spike' : 'block' });
+        }
+
+        obstacles.forEach((obs, i) => {
+            obs.x -= state.speed;
+            
+            // Коллизия (с запасом 8px для честности)
+            const pX = player.x + 8, pY = player.y + 8, pW = player.w - 16, pH = player.h - 16;
+            if(pX < obs.x + 30 && pX + pW > obs.x + 5 && pY + pH > canvas.height - state.groundY - 40) {
+                gameOver();
             }
-        }
 
-        // Обновление частиц
+            if(obs.x < -100) {
+                obstacles.splice(i, 1);
+                state.score++;
+                scoreEl.innerText = state.score;
+            }
+        });
+
         particles.forEach((p, i) => {
-            p.x += p.dx; p.y += p.dy; p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
             if(p.life <= 0) particles.splice(i, 1);
         });
 
-        if(player.onGround) createParticle(player.x, player.y + player.h);
-
-        // Обновление препятствий
-        obstacles.forEach((obs, i) => {
-            obs.x -= settings.speed;
-            if(obs.x < -100) {
-                obstacles.splice(i, 1);
-                score++;
-                scoreEl.innerText = score;
-            }
-
-            // Коллизия
-            if (player.x < obs.x + obs.w - 5 && player.x + player.w > obs.x + 5 &&
-                player.y < canvas.height - settings.groundY - 5 && player.y + player.h > canvas.height - settings.groundY - obs.h + 5) {
-                reset();
-            }
-        });
+        frame++;
     }
 
     function draw() {
-        ctx.fillStyle = '#050508';
+        const skyColor = `hsl(${state.bgColor}, 30%, 10%)`;
+        const neonColor = `hsl(${state.bgColor}, 80%, 50%)`;
+        
+        ctx.save();
+        if(state.shake > 1) ctx.translate(Math.random()*state.shake, Math.random()*state.shake);
+
+        // Фон
+        ctx.fillStyle = skyColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Сетка фона
-        ctx.strokeStyle = '#111';
-        for(let x = bgOffset; x < canvas.width; x += 100) {
-            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-        }
-
-        // Пол
-        ctx.fillStyle = '#00f2ff';
-        ctx.fillRect(0, canvas.height - settings.groundY, canvas.width, 2);
+        // Линия пола
+        ctx.strokeStyle = neonColor;
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 15; ctx.shadowColor = neonColor;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height - state.groundY);
+        ctx.lineTo(canvas.width, canvas.height - state.groundY);
+        ctx.stroke();
 
         // Частицы
         particles.forEach(p => {
-            ctx.fillStyle = `rgba(0, 242, 255, ${p.life})`;
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = p.life;
             ctx.fillRect(p.x, p.y, p.size, p.size);
         });
+        ctx.globalAlpha = 1;
 
-        // Игрок
+        // Отрисовка препятствий
+        obstacles.forEach(obs => {
+            ctx.fillStyle = '#ff0055'; ctx.shadowColor = '#ff0055';
+            if(obs.type === 'spike') {
+                ctx.beginPath();
+                ctx.moveTo(obs.x, canvas.height - state.groundY);
+                ctx.lineTo(obs.x + 20, canvas.height - state.groundY - 40);
+                ctx.lineTo(obs.x + 40, canvas.height - state.groundY);
+                ctx.fill();
+            } else {
+                ctx.fillRect(obs.x, canvas.height - state.groundY - 40, 40, 40);
+            }
+        });
+
+        // Игрок (Куб)
         ctx.save();
         ctx.translate(player.x + player.w/2, player.y + player.h/2);
         ctx.rotate(player.angle);
-        ctx.fillStyle = '#00f2ff';
-        ctx.shadowBlur = 15; ctx.shadowColor = '#00f2ff';
+        ctx.fillStyle = neonColor; ctx.shadowColor = neonColor;
         ctx.fillRect(-player.w/2, -player.h/2, player.w, player.h);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-        ctx.strokeRect(-player.w/2 + 5, -player.h/2 + 5, player.w - 10, player.h - 10);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+        ctx.strokeRect(-player.w/2 + 8, -player.h/2 + 8, 26, 26);
         ctx.restore();
 
-        // Препятствия (Шипы)
-        ctx.shadowBlur = 10; ctx.shadowColor = '#ff00de';
-        ctx.fillStyle = '#ff00de';
-        obstacles.forEach(obs => {
-            ctx.beginPath();
-            ctx.moveTo(obs.x, canvas.height - settings.groundY);
-            ctx.lineTo(obs.x + obs.w/2, canvas.height - settings.groundY - obs.h);
-            ctx.lineTo(obs.x + obs.w, canvas.height - settings.groundY);
-            ctx.fill();
-        });
-        ctx.shadowBlur = 0;
+        ctx.restore();
     }
 
-    function reset() {
-        if(score > best) {
-            best = score;
-            localStorage.setItem('dash_pro_best', best);
-            bestEl.innerText = best;
+    function gameOver() {
+        state.active = false;
+        state.shake = 20;
+        spawnEmitter(player.x, player.y, '#00f2ff', 30);
+        
+        if(state.score > state.best) {
+            state.best = state.score;
+            localStorage.setItem('rd_ultimate_best', state.best);
+            // Сохранение в Firebase под именем Abdrakhman
+            set(ref(db, 'leaderboard/Abdrakhman'), { score: state.best });
         }
-        score = 0;
-        scoreEl.innerText = 0;
-        obstacles = [];
-        player.dy = 0;
-        player.angle = 0;
+        
+        setTimeout(() => {
+            menu.style.display = 'flex';
+            bestEl.innerText = state.best;
+        }, 1000);
     }
 
     function loop() {
+        if(!state.active) return;
         update();
         draw();
         requestAnimationFrame(loop);
     }
-
-    loop();
 </script>
 </body>
 </html>
