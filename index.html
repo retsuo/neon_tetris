@@ -3,40 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>RETSUO GLITCH</title>
+    <title>RETSUO GLITCH v3.0</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Exo+2:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --bg: #030305; }
+        :root { --neon: #00f2ff; --pink: #ff00de; --gold: #ffd700; --bg: #030305; --panel: rgba(20, 20, 25, 0.95); }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Exo 2', sans-serif; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
 
-        /* Панель управления (HUD) */
-        .hud { display: flex; justify-content: space-around; align-items: center; padding: 15px; background: rgba(0,0,0,0.85); z-index: 10; border-bottom: 1px solid #333; }
-        .hud-val { font-size: 16px; font-weight: 900; letter-spacing: 1px; }
-        .score-glow { color: var(--neon); text-shadow: 0 0 10px var(--neon); }
-        .gem-glow { color: var(--gold); text-shadow: 0 0 10px var(--gold); }
-
-        #combo-ui { position: fixed; top: 110px; left: 50%; transform: translateX(-50%); font-size: 45px; color: var(--pink); text-shadow: 0 0 20px var(--pink); display: none; z-index: 5; pointer-events: none; }
+        /* HUD */
+        .hud { display: flex; justify-content: space-around; align-items: center; padding: 15px; background: rgba(0,0,0,0.9); z-index: 10; border-bottom: 1px solid #333; }
+        .hud-val { font-size: 15px; font-weight: 900; }
+        .score-glow { color: var(--neon); text-shadow: 0 0 8px var(--neon); }
+        .gem-glow { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
 
         /* Игровая зона */
-        #game-container { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+        #game-container { flex: 1; position: relative; overflow: hidden; touch-action: none; transition: transform 0.1s; }
         canvas { display: block; width: 100%; height: 100%; }
 
-        /* Меню */
-        .overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(10px); }
-        .game-title { font-family: 'Orbitron', sans-serif; font-size: 36px; margin-bottom: 20px; text-shadow: 0 0 20px var(--neon); text-align: center; line-height: 1.2; }
-        .btn-start { background: var(--neon); border: none; padding: 18px 60px; border-radius: 50px; font-weight: 900; font-size: 18px; color: #000; box-shadow: 0 0 30px rgba(0, 242, 255, 0.4); cursor: pointer; }
+        /* Меню и Магазин */
+        .overlay { position: absolute; inset: 0; background: var(--panel); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(15px); }
+        .btn-main { background: var(--neon); border: none; padding: 18px 50px; border-radius: 50px; font-weight: 900; font-size: 18px; color: #000; cursor: pointer; margin-top: 15px; width: 220px; text-align: center; }
+        .btn-shop { background: transparent; border: 2px solid var(--gold); color: var(--gold); padding: 12px 30px; border-radius: 50px; font-weight: 900; margin-top: 10px; width: 220px; cursor: pointer; }
+
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; width: 90%; max-width: 350px; }
+        .shop-item { background: rgba(255,255,255,0.05); border: 1px solid #444; border-radius: 15px; padding: 15px; text-align: center; }
+        .shop-item.owned { border-color: var(--neon); opacity: 0.8; }
+        .shop-item img { width: 40px; height: 40px; margin-bottom: 10px; }
         
-        #name-box { width: 80%; max-width: 300px; margin-bottom: 25px; }
-        input { width: 100%; background: #111; border: 2px solid var(--neon); border-radius: 12px; color: #fff; padding: 14px; text-align: center; font-size: 16px; font-family: 'Exo 2', sans-serif; }
+        #combo-ui { position: fixed; top: 110px; left: 50%; transform: translateX(-50%); font-size: 50px; color: var(--pink); text-shadow: 0 0 20px var(--pink); display: none; z-index: 5; }
     </style>
 </head>
 <body>
 
 <div class="hud">
     <div class="hud-val score-glow">СЧЕТ: <span id="score">0</span></div>
-    <div class="hud-val gem-glow">КРИСТАЛЛЫ: <span id="gems">0</span></div>
-    <div style="font-size: 11px; opacity: 0.6;">РЕКОРД: <span id="best">0</span></div>
+    <div class="hud-val gem-glow">💎 <span id="gems">0</span></div>
+    <div style="font-size: 10px; opacity: 0.6;">РЕКОРД: <span id="best">0</span></div>
 </div>
 
 <div id="combo-ui">x<span id="combo-val">1</span></div>
@@ -45,15 +47,16 @@
     <canvas id="canvas"></canvas>
     
     <div id="menu" class="overlay">
-        <h1 class="game-title">RETSUO<br><span style="color:var(--pink)">GLITCH</span></h1>
-        
-        <div id="name-box">
-            <p style="color: #aaa; font-size: 13px; margin-bottom: 10px; text-align: center;">Твой псевдоним:</p>
-            <input type="text" id="nick-input" placeholder="RETSUO" maxlength="12">
-        </div>
+        <h1 style="font-family:'Orbitron'; font-size: 32px; text-align:center; text-shadow:0 0 15px var(--neon);">RETSUO<br><span style="color:var(--pink)">GLITCH</span></h1>
+        <button class="btn-main" onclick="startGame()">ИГРАТЬ</button>
+        <button class="btn-shop" onclick="toggleShop(true)">МАГАЗИН</button>
+    </div>
 
-        <button class="btn-start" onclick="startGame()">ИГРАТЬ</button>
-        <p style="margin-top: 25px; font-size: 11px; opacity: 0.4; letter-spacing: 2px;">ЖМИ НА ЭКРАН ДЛЯ ПРЫЖКА</p>
+    <div id="shop" class="overlay" style="display:none;">
+        <h2 style="color:var(--gold); margin-bottom:10px;">МАГАЗИН</h2>
+        <div class="shop-grid" id="shop-items">
+            </div>
+        <button class="btn-main" style="background:#444; color:#fff;" onclick="toggleShop(false)">НАЗАД</button>
     </div>
 </div>
 
@@ -70,166 +73,138 @@
     const scoreEl = document.getElementById('score');
     const gemsEl = document.getElementById('gems');
     const bestEl = document.getElementById('best');
-    const comboUi = document.getElementById('combo-ui');
+    const container = document.getElementById('game-container');
+
+    const SKINS = [
+        { id: 'cube', name: 'Куб', price: 0, color: '#00f2ff', radius: 8 },
+        { id: 'neon_disk', name: 'Диск', price: 100, color: '#ff00de', radius: 50 },
+        { id: 'gold_bar', name: 'Слиток', price: 500, color: '#ffd700', radius: 4 }
+    ];
 
     let state = {
         active: false,
-        name: localStorage.getItem('glitch_nick') || "",
+        name: localStorage.getItem('glitch_nick') || "RETSUO",
         gems: parseInt(localStorage.getItem('glitch_gems')) || 0,
-        best: localStorage.getItem('glitch_best_rus') || 0,
-        combo: 1,
-        speed: 7,
-        gravity: 1,
-        player: { x: 70, y: 0, w: 35, h: 35, color: '#00f2ff' }
+        best: localStorage.getItem('glitch_best_v3') || 0,
+        ownedSkins: JSON.parse(localStorage.getItem('glitch_skins')) || ['cube'],
+        currentSkin: localStorage.getItem('glitch_current_skin') || 'cube',
+        combo: 1, speed: 7, gravity: 1,
+        player: { x: 70, y: 0, w: 35, h: 35 }
     };
 
-    if (state.name) document.getElementById('name-box').style.display = 'none';
-    bestEl.innerText = state.best;
-    gemsEl.innerText = state.gems;
+    function updateHUD() {
+        gemsEl.innerText = state.gems;
+        bestEl.innerText = state.best;
+    }
+    updateHUD();
 
-    let obstacles = [];
-    let crystals = [];
+    window.toggleShop = (show) => {
+        document.getElementById('menu').style.display = show ? 'none' : 'flex';
+        document.getElementById('shop').style.display = show ? 'flex' : 'none';
+        if(show) renderShop();
+    };
+
+    function renderShop() {
+        const grid = document.getElementById('shop-items');
+        grid.innerHTML = SKINS.map(skin => {
+            const isOwned = state.ownedSkins.includes(skin.id);
+            const isSelected = state.currentSkin === skin.id;
+            return `
+                <div class="shop-item ${isSelected ? 'owned' : ''}" onclick="buySkin('${skin.id}', ${skin.price})">
+                    <div style="background:${skin.color}; width:30px; height:30px; margin:0 auto 10px; border-radius:${skin.radius}px; box-shadow:0 0 10px ${skin.color}"></div>
+                    <div style="font-size:12px;">${skin.name}</div>
+                    <div style="font-size:10px; color:var(--gold)">${isOwned ? (isSelected ? 'ВЫБРАНО' : 'ВЗЯТЬ') : skin.price + ' 💎'}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    window.buySkin = (id, price) => {
+        if (state.ownedSkins.includes(id)) {
+            state.currentSkin = id;
+        } else if (state.gems >= price) {
+            state.gems -= price;
+            state.ownedSkins.push(id);
+            state.currentSkin = id;
+        } else {
+            return alert("Нужно больше кристаллов!");
+        }
+        localStorage.setItem('glitch_gems', state.gems);
+        localStorage.setItem('glitch_skins', JSON.stringify(state.ownedSkins));
+        localStorage.setItem('glitch_current_skin', state.currentSkin);
+        updateHUD();
+        renderShop();
+    };
 
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight - 80;
-        state.player.targetY = canvas.height - 80;
-        state.player.y = state.player.targetY;
+        state.player.targetY = canvas.height - 85;
     }
-    window.addEventListener('resize', resize);
-    resize();
+    window.addEventListener('resize', resize); resize();
 
     window.addEventListener('touchstart', (e) => {
         if(!state.active || e.target.closest('.hud')) return;
         state.gravity *= -1;
-        state.player.targetY = state.gravity === 1 ? canvas.height - 80 : 40;
+        state.player.targetY = state.gravity === 1 ? canvas.height - 85 : 50;
     });
 
     window.startGame = () => {
-        if (!state.name) {
-            const input = document.getElementById('nick-input').value.trim();
-            state.name = input || "RETSUO";
-            localStorage.setItem('glitch_nick', state.name);
-            document.getElementById('name-box').style.display = 'none';
-        }
-
         document.getElementById('menu').style.display = 'none';
-        state.active = true;
-        state.score = 0;
-        state.combo = 1;
-        state.speed = 7;
-        obstacles = [];
-        crystals = [];
-        scoreEl.innerText = 0;
+        state.active = true; state.score = 0; state.combo = 1; state.speed = 7;
+        obstacles = []; crystals = [];
         animate();
     };
 
-    function spawnEntity() {
-        const rand = Math.random();
-        if (rand < 0.2) { // Кристаллы чаще
-            crystals.push({
-                x: canvas.width + 50,
-                y: Math.random() > 0.5 ? canvas.height - 100 : 80,
-                r: 12
-            });
-        } else { // Только обычные блоки
-            const h = 60 + Math.random() * 110;
-            const isTop = Math.random() > 0.5;
-            obstacles.push({
-                x: canvas.width + 50,
-                y: isTop ? 0 : canvas.height - h,
-                w: 45, h: h,
-                color: isTop ? '#ff00de' : '#ffd700'
-            });
-        }
-    }
-
-    let spawnTimer = 0;
+    let obstacles = [], crystals = [], spawnTimer = 0;
+    const currentSkinData = () => SKINS.find(s => s.id === state.currentSkin);
 
     function animate() {
         if(!state.active) return;
+        ctx.fillStyle = 'rgba(3, 3, 5, 0.3)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.fillStyle = 'rgba(3, 3, 5, 0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        state.player.y += (state.player.targetY - state.player.y) * 0.25;
+        const skin = currentSkinData();
 
-        state.player.y += (state.player.targetY - state.player.y) * 0.22;
-
-        // Отрисовка игрока
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = state.player.color;
-        ctx.fillStyle = state.player.color;
-        ctx.beginPath();
-        ctx.roundRect(state.player.x, state.player.y, state.player.w, state.player.h, 10);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        ctx.shadowBlur = 20; ctx.shadowColor = skin.color; ctx.fillStyle = skin.color;
+        ctx.beginPath(); ctx.roundRect(state.player.x, state.player.y, state.player.w, state.player.h, skin.radius); ctx.fill();
 
         spawnTimer++;
-        if(spawnTimer > Math.max(25, 55 - state.speed)) {
-            spawnEntity();
-            spawnTimer = 0;
-            state.speed += 0.005;
-            state.score += state.combo;
-            scoreEl.innerText = state.score;
+        if(spawnTimer > Math.max(20, 55 - state.speed)) {
+            if(Math.random() < 0.2) crystals.push({x: canvas.width+50, y: Math.random()>0.5?canvas.height-100:80, r:12});
+            else {
+                const h = 60 + Math.random()*110; const isTop = Math.random()>0.5;
+                obstacles.push({x: canvas.width+50, y: isTop?0:canvas.height-h, w: 45, h: h, color: isTop?'#ff00de':'#ffd700'});
+            }
+            spawnTimer = 0; state.speed += 0.005; state.score += state.combo; scoreEl.innerText = state.score;
         }
 
         obstacles.forEach((obs, i) => {
-            obs.x -= state.speed;
-            ctx.fillStyle = obs.color;
-            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-
+            obs.x -= state.speed; ctx.fillStyle = obs.color; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
             if (state.player.x < obs.x + obs.w && state.player.x + state.player.w > obs.x &&
-                state.player.y < obs.y + obs.h && state.player.y + state.player.h > obs.y) {
-                gameOver();
-            }
+                state.player.y < obs.y + obs.h && state.player.y + state.player.h > obs.y) gameOver();
             if(obs.x < -100) obstacles.splice(i, 1);
         });
 
         crystals.forEach((gem, i) => {
-            gem.x -= state.speed;
-            ctx.fillStyle = '#ffd700';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = '#ffd700';
-            ctx.beginPath();
-            ctx.arc(gem.x, gem.y, gem.r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-
+            gem.x -= state.speed; ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(gem.x, gem.y, gem.r, 0, Math.PI*2); ctx.fill();
             if (Math.hypot(state.player.x + 17 - gem.x, state.player.y + 17 - gem.y) < 35) {
-                state.gems += 5;
-                state.combo += 1;
-                gemsEl.innerText = state.gems;
-                crystals.splice(i, 1);
-                showComboEffect();
+                state.gems += 10; state.score += 100; updateHUD(); crystals.splice(i, 1);
+                container.style.transform = 'scale(1.02)'; setTimeout(()=>container.style.transform='scale(1)', 50);
             }
         });
-
         requestAnimationFrame(animate);
-    }
-
-    function showComboEffect() {
-        document.getElementById('combo-val').innerText = state.combo;
-        comboUi.style.display = 'block';
-        setTimeout(() => { if(state.active) comboUi.style.display = 'none'; }, 800);
     }
 
     function gameOver() {
         state.active = false;
-        localStorage.setItem('glitch_gems', state.gems);
         if(state.score > state.best) {
             state.best = state.score;
-            localStorage.setItem('glitch_best_rus', state.best);
+            localStorage.setItem('glitch_best_v3', state.best);
         }
-        
-        // Сохранение в Firebase под ником игрока
-        set(ref(db, 'leaderboard/' + state.name), {
-            score: state.score,
-            gems: state.gems,
-            best: state.best,
-            date: new Date().toLocaleDateString()
-        });
-
+        set(ref(db, 'players/' + state.name), { best: state.best, gems: state.gems });
         document.getElementById('menu').style.display = 'flex';
-        bestEl.innerText = state.best;
+        updateHUD();
     }
 </script>
 </body>
